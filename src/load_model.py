@@ -8,7 +8,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
-DEFAULT_MODEL_ID = "Zyphra/FinR1-7B"  # official FinR1 checkpoint on Hugging Face
+DEFAULT_MODEL_ID = "SUFE-AIFLM-Lab/Fin-R1"  # official FinR1 checkpoint on Hugging Face
 
 
 def load_baseline(

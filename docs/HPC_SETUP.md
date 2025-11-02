@@ -1,53 +1,61 @@
 # HPC Baseline Quickstart
 
-If you are working directly on the HPC (no local changes), you can skip the push/pull step below.
+If you are working directly on the HPC (no local changes), you can skip any push/pull steps.
 
-## 2. Clone on NYU HPC
+## 1. Clone the repository on NYU HPC
+
 ```bash
-# login and move to your scratch space
-ssh <netid>@hpc.nyu.edu
-cd /scratch/<netid>
-
-# clone the repository
+ssh <netid>@hpc.nyu.edu                # log in to the cluster
+cd /scratch/<netid>                    # switch to your scratch space
 git clone https://github.com/Dolphin2333/FinQA-with-QSTAR.git
 cd FinQA-with-QSTAR
 ```
 
-If HTTPS is blocked, set up SSH keys and clone via `git@github.com:...`.
+If HTTPS is blocked, configure SSH keys and clone via `git@github.com:...`.
 
-## 3. Create Python environment
+## 2. Create a Python environment
+
 ```bash
-# create virtual environment (if no conda module is available)
-python3 -m venv .venv
+python3 -m venv .venv                  # create a virtualenv (since no conda module is available)
 source .venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-Optional: set `HF_HOME=/scratch/<netid>/hf_cache` to control the Hugging Face cache location.
+Optional: set `HF_HOME=/scratch/<netid>/hf_cache` to control the Hugging Face cache location before running the script.
 
-## 4. Prepare FinQA dataset
+## 3. Prepare the FinQA dataset
+
+Download `train.json`, `dev.json`, and `test.json` from the official FinQA repository (<https://github.com/czyssrs/FinQA>) and upload/copied them into `data/FinQA/` on the HPC node.
+
 ```bash
 mkdir -p data/FinQA
-# copy train.json / dev.json / test.json from the official repo
 scp <local_path>/FinQA/*.json <netid>@hpc.nyu.edu:/scratch/<netid>/FinQA-with-QSTAR/data/FinQA/
 ```
 
-## 5. Run the baseline script
+If you cloned the FinQA repo directly on the HPC, simply copy the JSON files from `FinQA/dataset/` into `data/FinQA/`.
+
+## 4. Run the baseline script
+
 ```bash
+export PYTHONPATH=$(pwd)               # ensure Python can import src/*
 python scripts/run_baseline.py \
   --dataset-dir data/FinQA \
   --split dev \
-  --model-name Zyphra/FinR1-7B \
+  --model-name SUFE-AIFLM-Lab/Fin-R1 \
   --max-new-tokens 64 \
   --limit 50 \
   --output outputs/finr1-dev.json
 ```
 
-Remove `--limit` once you verify everything works. The first run will download ~14 GB model weights; ensure you reserved a GPU node with ≥24 GB VRAM or adjust `torch_dtype`/`device_map` in `src/load_model.py`.
+If you hit `ModuleNotFoundError: No module named 'src'`, re-run the `export PYTHONPATH=$(pwd)` step and launch the script again.
 
-## 6. Alternative: serve Fin-R1 with vLLM
-If you need to expose an inference endpoint instead of running the baseline script:
+Remove `--limit` once you verify the pipeline works. The first run downloads ~14 GB of weights, so reserve a GPU node with ≥24 GB of VRAM (or tweak `torch_dtype`/`device_map` in `src/load_model.py`).
+
+## 5. Optional: serve Fin-R1 with vLLM
+
+To expose the model as an inference endpoint instead of running the baseline script:
+
 ```bash
 module load anaconda3
 conda create -n finr1-serve python=3.10 -y
@@ -64,7 +72,8 @@ vllm serve "/scratch/<netid>/Fin-R1" \
   --served-model-name "Fin-R1"
 ```
 
-Example client (from a login or compute node):
+Example client (run on a login/compute node):
+
 ```python
 from openai import OpenAI
 
@@ -85,4 +94,4 @@ resp = client.chat.completions.create(
 print(resp)
 ```
 
-Remember to shut down the service once you finish (`Ctrl+C` on the serving process).
+Terminate the vLLM service when finished (`Ctrl+C` in the terminal running `vllm serve`).
