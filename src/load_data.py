@@ -49,6 +49,7 @@ class FinQASample:
     program_text: str
     program_tokens: Sequence[str]
     table: Sequence[Sequence[str]]
+    model_input: Sequence[str]
     pre_text: str
     post_text: str
     supporting_facts: Sequence[str]
@@ -83,6 +84,9 @@ def load_finqa_split(dataset_dir: Path, split: str) -> List[FinQASample]:
             pre_text=_flatten_text(entry.get("pre_text", "")),
             post_text=_flatten_text(entry.get("post_text", "")),
             supporting_facts=list(qa_blob.get("supporting_facts") or []),
+            model_input=[
+                _flatten_text(record[1]) for record in qa_blob.get("model_input") or [] if len(record) >= 2
+            ],
             metadata=entry,
         )
         examples.append(example)
