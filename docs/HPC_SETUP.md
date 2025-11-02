@@ -1,16 +1,14 @@
 # HPC Baseline Quickstart
 
-This note assumes you have already finished the baseline code locally and pushed it to GitHub.
-
-## 1. Push from local
-- `git add .`
-- `git commit -m "Baseline scaffold"`
-- `git push origin main`
+If you are working directly on the HPC (no local changes), you can skip the push/pull step below.
 
 ## 2. Clone on NYU HPC
 ```bash
+# login and move to your scratch space
 ssh <netid>@hpc.nyu.edu
-cd /scratch/<netid>              # or your project space
+cd /scratch/<netid>
+
+# clone the repository
 git clone https://github.com/Dolphin2333/FinQA-with-QSTAR.git
 cd FinQA-with-QSTAR
 ```
@@ -19,9 +17,10 @@ If HTTPS is blocked, set up SSH keys and clone via `git@github.com:...`.
 
 ## 3. Create Python environment
 ```bash
-module load anaconda3            # or the cluster’s preferred Python module
-conda create -n finqa python=3.10 -y
-conda activate finqa
+# create virtual environment (if no conda module is available)
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
 

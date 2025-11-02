@@ -2,20 +2,35 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
-from typing import Iterable, List, Sequence
+from typing import List, Sequence
 
 import torch
 from transformers import PreTrainedModel, PreTrainedTokenizerBase
 
 from .load_data import FinQASample
+from .table_utils import table_to_text
 
 
 def build_prompt(sample: FinQASample) -> str:
     """Format a FinQA prompt for autoregressive inference."""
-    context_lines = "\n".join(sample.evidence)
-    context_section = f"\nContext:\n{context_lines}\n" if context_lines else ""
-    return f"Question: {sample.question}{context_section}\nAnswer:"
+    context_parts: List[str] = []
+
+    pre = sample.pre_text.strip()
+    post = sample.post_text.strip()
+    table_text = table_to_text(sample.table)
+
+    if pre:
+        context_parts.append(pre)
+    if table_text:
+        context_parts.append("Table:\n" + table_text)
+    if post:
+        context_parts.append(post)
+
+    context_block = "\n\n".join(context_parts).strip()
+    if context_block:
+        context_block += "\n\n"
+
+    return f"{context_block}Question: {sample.question}\nAnswer:"
 
 
 @torch.inference_mode()

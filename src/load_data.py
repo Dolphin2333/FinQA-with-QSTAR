@@ -1,4 +1,4 @@
-"""Utilities for loading the FinQA dataset."""
+"""Utilities for loading and parsing the FinQA dataset."""
 
 from __future__ import annotations
 
@@ -8,34 +8,56 @@ from pathlib import Path
 from typing import Iterable, List, Sequence
 
 
+def _program_tokenization(program_text: str) -> List[str]:
+    """Convert the FinQA program string into a list of tokens (copy of official logic)."""
+    program_text = program_text or ""
+    tokens = []
+    current = ""
+
+    for char in program_text.split(", "):
+        cur_tok = ""
+        for c in char:
+            if c == ")":
+                if cur_tok:
+                    tokens.append(cur_tok)
+                    cur_tok = ""
+            cur_tok += c
+            if c in ("(", ")"):
+                tokens.append(cur_tok)
+                cur_tok = ""
+        if cur_tok:
+            tokens.append(cur_tok)
+    tokens.append("EOF")
+    return tokens
+
+
+def _flatten_text(field) -> str:
+    if isinstance(field, list):
+        return " ".join(str(item).strip() for item in field if str(item).strip())
+    if field is None:
+        return ""
+    return str(field)
+
+
 @dataclass
 class FinQASample:
-    """Container for one FinQA example."""
+    """Container for one FinQA example with rich context."""
 
+    sample_id: str
     question: str
     answer: str
-    program: Sequence[str]
-    evidence: Sequence[str]
+    program_text: str
+    program_tokens: Sequence[str]
+    table: Sequence[Sequence[str]]
+    pre_text: str
+    post_text: str
+    supporting_facts: Sequence[str]
     metadata: dict
 
 
 def load_finqa_split(dataset_dir: Path, split: str) -> List[FinQASample]:
-    """Load a FinQA split (train/dev/test) from ``dataset_dir``.
+    """Load a FinQA split (train/dev/test) from ``dataset_dir``."""
 
-    Parameters
-    ----------
-    dataset_dir:
-        Path pointing to the root of the FinQA dataset repository.
-        We expect JSON files following the official naming convention,
-        e.g. ``train.json``, ``dev.json``, and ``test.json``.
-    split:
-        Dataset split name. Common values are ``\"train\"``, ``\"dev\"``, ``\"test\"``.
-
-    Returns
-    -------
-    List[FinQASample]
-        Parsed samples with question text, ground-truth answer, program steps, and metadata.
-    """
     dataset_dir = Path(dataset_dir)
     split_path = dataset_dir / f"{split}.json"
     if not split_path.exists():
@@ -47,31 +69,27 @@ def load_finqa_split(dataset_dir: Path, split: str) -> List[FinQASample]:
     with split_path.open("r", encoding="utf-8") as f:
         raw_samples = json.load(f)
 
-    samples: List[FinQASample] = []
-    for example in raw_samples:
-        question = example.get("question", "")
-        answer = example.get("answer", "")
-        program = example.get("program", []) or []
-        evidence = example.get("evidence", []) or []
-        samples.append(
-            FinQASample(
-                question=question,
-                answer=str(answer),
-                program=list(program),
-                evidence=list(evidence),
-                metadata=example,
-            )
+    examples: List[FinQASample] = []
+    for entry in raw_samples:
+        qa_blob = entry.get("qa", {}) or {}
+        program_text = qa_blob.get("program", "")
+        example = FinQASample(
+            sample_id=str(entry.get("id", "")),
+            question=qa_blob.get("question", ""),
+            answer=str(qa_blob.get("answer", "")),
+            program_text=program_text,
+            program_tokens=_program_tokenization(program_text),
+            table=[list(map(str, row)) for row in entry.get("table", [])],
+            pre_text=_flatten_text(entry.get("pre_text", "")),
+            post_text=_flatten_text(entry.get("post_text", "")),
+            supporting_facts=list(qa_blob.get("supporting_facts") or []),
+            metadata=entry,
         )
-    return samples
-
-
-def iter_questions(samples: Iterable[FinQASample]) -> Iterable[str]:
-    """Yield question text from a collection of :class:`FinQASample` objects."""
-    for example in samples:
-        yield example.question
+        examples.append(example)
+    return examples
 
 
 def iter_answers(samples: Iterable[FinQASample]) -> Iterable[str]:
     """Yield ground-truth answers as strings."""
-    for example in samples:
-        yield example.answer
+    for sample in samples:
+        yield sample.answer

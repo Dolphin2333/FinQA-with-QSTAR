@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Optional
 
 from src.eval_finqa import compute_accuracy
 from src.infer import run_inference
@@ -77,11 +76,14 @@ def main() -> None:
     if args.output:
         serializable = [
             {
+                "id": sample.sample_id,
                 "question": sample.question,
                 "ground_truth": sample.answer,
                 "prediction": pred,
-                "program": sample.program,
-                "evidence": sample.evidence,
+                "program_text": sample.program_text,
+                "pre_text": sample.pre_text,
+                "post_text": sample.post_text,
+                "table": sample.table,
             }
             for sample, pred in zip(samples, predictions)
         ]
