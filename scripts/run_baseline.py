@@ -39,6 +39,18 @@ def parse_args() -> argparse.Namespace:
         help="Maximum number of tokens generated for each answer.",
     )
     parser.add_argument(
+        "--temperature",
+        type=float,
+        default=0.7,
+        help="Temperature for nucleus sampling during generation.",
+    )
+    parser.add_argument(
+        "--top-p",
+        type=float,
+        default=0.8,
+        help="Top-p value for nucleus sampling during generation.",
+    )
+    parser.add_argument(
         "--limit",
         type=int,
         default=None,
@@ -63,14 +75,16 @@ def main() -> None:
     print(f"Loaded {len(samples)} samples from FinQA {args.split} split.")
 
     model, tokenizer = load_baseline(args.model_name)
-    predictions = run_inference(
+    generations = run_inference(
         model,
         tokenizer,
         samples,
         max_new_tokens=args.max_new_tokens,
+        temperature=args.temperature,
+        top_p=args.top_p,
     )
 
-    accuracy = compute_accuracy(predictions, list(iter_answers(samples)))
+    accuracy, preds, matches = compute_accuracy(generations, list(iter_answers(samples)))
     print(f"Accuracy: {accuracy * 100:.2f}% ({accuracy:.4f})")
 
     if args.output:
@@ -80,12 +94,14 @@ def main() -> None:
                 "question": sample.question,
                 "ground_truth": sample.answer,
                 "prediction": pred,
+                "match": match,
+                "generation": gen,
                 "program_text": sample.program_text,
                 "pre_text": sample.pre_text,
                 "post_text": sample.post_text,
                 "table": sample.table,
             }
-            for sample, pred in zip(samples, predictions)
+            for sample, gen, pred, match in zip(samples, generations, preds, matches)
         ]
         args.output.parent.mkdir(parents=True, exist_ok=True)
         with args.output.open("w", encoding="utf-8") as f:

@@ -41,11 +41,11 @@ If you cloned the FinQA repo directly on the HPC, simply copy the JSON files fro
 export PYTHONPATH=$(pwd)               # ensure Python can import src/*
 python scripts/run_baseline.py \
   --dataset-dir data/FinQA \
-  --split dev \
+  --split test \
   --model-name SUFE-AIFLM-Lab/Fin-R1 \
-  --max-new-tokens 64 \
-  --limit 50 \
-  --output outputs/finr1-dev.json
+  --max-new-tokens 4000 \
+  --limit 100 \
+  --output outputs/finr1-test.json
 ```
 
 If you hit `ModuleNotFoundError: No module named 'src'`, re-run the `export PYTHONPATH=$(pwd)` step and launch the script again.
