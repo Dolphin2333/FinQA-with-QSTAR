@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import math
 import re
-from typing import Iterable, Optional
+from typing import Iterable, Optional, List, Tuple
+
 
 
 NUM_RE = re.compile(r"[-+]?\d+(?:\.\d+)?")
@@ -56,7 +57,7 @@ def _str_to_num(text: str) -> Optional[float]:
 
 
 def _normalize_magnitude(num1: float, num2: float) -> List[float]:
-    if num1 == 0 or num2 == 0 or math.isnan(num1) or math.isnan(num2):
+    if num1 == 0 or num2 == 0:
         return [num1, num2]
 
     mag1 = math.floor(math.log10(abs(num1)))
