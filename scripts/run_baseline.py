@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from accelerate.utils import set_seed
 
 from src.eval_finqa import compute_accuracy
 from src.infer import run_inference
@@ -67,6 +68,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    set_seed(42)
 
     samples = load_finqa_split(args.dataset_dir, args.split)
     if args.limit:
