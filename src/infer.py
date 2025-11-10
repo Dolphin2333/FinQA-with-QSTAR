@@ -43,15 +43,16 @@ class BoxedStoppingCriteria(StoppingCriteria):
     def __init__(self, tokenizer, trigger="\\boxed{", extra_tokens=10):
         self.tokenizer = tokenizer
         self.trigger = trigger
+        self.trigger_ids = tokenizer.encode(trigger, add_special_tokens=False)
+        self.trigger_token_len = len(self.trigger_ids)
         self.extra_tokens = extra_tokens
         self.trigger_found = False
-        self.trigger_token_len = len(tokenizer.encode(trigger, add_special_tokens=False))
         self.counter = 0
 
     def __call__(self, input_ids, scores, **kwargs):
-        text = self.tokenizer.decode(input_ids[0])
+        seq = input_ids[0]
         if not self.trigger_found:
-            if self.trigger == text[-len(self.trigger):]:
+            if list(seq[-len(self.trigger_ids):]) == self.trigger_ids:
                 self.trigger_found = True
                 self.counter = 0
         else:
