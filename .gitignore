@@ -4,4 +4,4 @@ outputs/
 logs/
 .ipynb_checkpoints/
 __pycache__/
-outputs/
+outputs/data/FinQA/*.json
