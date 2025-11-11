@@ -52,6 +52,20 @@ If you hit `ModuleNotFoundError: No module named 'src'`, re-run the `export PYTH
 
 Remove `--limit` once you verify the pipeline works. The first run downloads ~14 GB of weights, so reserve a GPU node with ≥24 GB of VRAM (or tweak `torch_dtype`/`device_map` in `src/load_model.py`).
 
+If you want to run the baseline for other model, e.g. Qwen2.5-7B or Qwen/Qwen2.5-7B-Instruct, run:
+
+```bash
+export PYTHONPATH=$(pwd)
+
+#  use --limit 5 to quickly test
+python scripts/run_baseline.py \
+  --dataset-dir data/FinQA \
+  --split test \
+  --model-name Qwen/Qwen2.5-7B \
+  --max-new-tokens 4000 \
+  --limit 5 \
+  --output outputs/Qwen7b-test5.json
+```
 
 
 
