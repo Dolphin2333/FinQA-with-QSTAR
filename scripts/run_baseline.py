@@ -86,6 +86,21 @@ def main() -> None:
         top_p=args.top_p,
     )
 
+    if args.output:
+        temp_output = args.output.with_suffix(".raw.json")
+        print(f"Backing up raw generations to {temp_output}...")
+
+        raw_serializable = [
+            {"id": sample.sample_id, "generation": gen}
+            for sample, gen in zip(samples, generations)
+        ]
+        
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        
+        with temp_output.open("w", encoding="utf-8") as f:
+            json.dump(raw_serializable, f, indent=2, ensure_ascii=False)
+        print(f"Wrote raw generations to {temp_output}")
+
     accuracy, preds, matches = compute_accuracy(generations, list(iter_answers(samples)))
     print(f"Accuracy: {accuracy * 100:.2f}% ({accuracy:.4f})")
 

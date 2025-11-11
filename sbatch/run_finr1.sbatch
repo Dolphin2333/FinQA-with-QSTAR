@@ -21,6 +21,7 @@ export HF_HOME=/scratch/hz3916/.cache/huggingface
 export TOKENIZERS_PARALLELISM=false
 export PYTHONPATH=/scratch/hz3916/FinQA-with-QSTAR
 
+# change the test set and output name as needed
 # —— run test 100 -- with random seed 3916
 python scripts/run_baseline.py \
   --dataset-dir data/FinQA \

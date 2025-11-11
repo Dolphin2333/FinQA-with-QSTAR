@@ -57,7 +57,7 @@ def _str_to_num(text: str) -> Optional[float]:
 
 
 def _normalize_magnitude(num1: float, num2: float) -> List[float]:
-    if num1 == 0 or num2 == 0:
+    if not math.isfinite(num1) or not math.isfinite(num2) or num1 == 0 or num2 == 0:
         return [num1, num2]
 
     mag1 = math.floor(math.log10(abs(num1)))
@@ -70,7 +70,7 @@ def _normalize_magnitude(num1: float, num2: float) -> List[float]:
         else:
             num1 *= 10**(-diff)
 
-    return [num1, num2]  
+    return [num1, num2] 
 
 
 def _extract_numeric_candidate(text: str) -> Optional[float]:
