@@ -23,7 +23,7 @@ export PYTHONPATH=/scratch/hz3916/FinQA-with-QSTAR # make sure Python is able to
 echo "Starting full test on Qwen/Qwen2.5-7B-Instruct..."
 
 python scripts/run_baseline.py \
-  --dataset-dir data/FinQA \
+  --dataset-dir data \
   --split test \
   --model-name Qwen/Qwen2.5-7B-Instruct \
   --max-new-tokens 4000 \

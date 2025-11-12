@@ -8,6 +8,7 @@ against FinQA ground-truth answers. It supports:
   FinQA-style constants (e.g., ``const_m1``).
 - Magnitude alignment to tolerate scientific-scale mismatches when both
   sides are numeric.
+- Extract answer from model outputs wrapped in ``\\boxed{...}``.
 
 Key entry point:
 - ``compute_accuracy``: computes FinQA-style execution accuracy and also

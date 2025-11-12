@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import argparse
 import json
 from pathlib import Path
@@ -20,13 +21,14 @@ def parse_args() -> argparse.Namespace:
     -------
     argparse.Namespace
         Parsed arguments including dataset location, split, model id,
-        generation settings, optional sample limit, and output path.
+        generation settings, optional sample offset and limit, output path,
+        and random seed.
     """
     parser = argparse.ArgumentParser(description="Run FinR1 baseline on the FinQA dataset.")
     parser.add_argument(
         "--dataset-dir",
         type=Path,
-        required=True,
+        default="data",
         help="Path to the FinQA dataset directory containing train/dev/test JSON files.",
     )
     parser.add_argument(
@@ -60,6 +62,18 @@ def parse_args() -> argparse.Namespace:
         help="Top-p value for nucleus sampling during generation.",
     )
     parser.add_argument(
+        "--repetition-penalty",
+        type=float,
+        default=1.05,
+        help="Repetition penalty to apply during generation.",
+    )
+    parser.add_argument(
+        "--offset",
+        type=int,
+        default=None,
+        help="Optional offset on the samples evaluated.",
+    )
+    parser.add_argument(
         "--limit",
         type=int,
         default=None,
@@ -70,6 +84,12 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=None,
         help="Optional path to write predictions as JSON.",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Optional random seed for reproducibility.",
     )
     return parser.parse_args()
 
@@ -82,9 +102,11 @@ def main() -> None:
     writes raw generations and a detailed predictions file to disk.
     """
     args = parse_args()
-    set_seed(42)
+    set_seed(args.seed)
 
     samples = load_finqa_split(args.dataset_dir, args.split)
+    if args.offset:
+        samples = samples[args.offset:]
     if args.limit:
         samples = samples[: args.limit]
 
@@ -98,6 +120,7 @@ def main() -> None:
         max_new_tokens=args.max_new_tokens,
         temperature=args.temperature,
         top_p=args.top_p,
+        repetition_penalty=args.repetition_penalty,
     )
 
     if args.output:
@@ -138,6 +161,10 @@ def main() -> None:
         with args.output.open("w", encoding="utf-8") as f:
             json.dump(serializable, f, indent=2, ensure_ascii=False)
         print(f"Wrote predictions to {args.output}")
+
+        if os.path.exists(temp_output):
+            os.remove(temp_output)
+        print(f"Delete backup generations at {temp_output}")
 
 
 if __name__ == "__main__":
