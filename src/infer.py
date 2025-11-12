@@ -1,4 +1,18 @@
-"""Baseline inference utilities."""
+"""Baseline inference utilities.
+
+This module formats prompts for FinQA samples, runs autoregressive
+generation with a Hugging Face causal LM, and truncates output when the
+boxed numeric answer is complete.
+
+Highlights:
+- ``build_prompt`` assembles context from narrative text and table content
+  (converted to sentences) and instructs the model to return the final
+  result in ``\\boxed{...}``.
+- ``BoxedStoppingCriteria`` halts generation shortly after ``\\boxed{`` is
+  opened and the closing brace ``}`` is produced, preventing trailing text.
+- ``run_inference`` performs batched generation with temperature/top-p and
+  repetition penalty controls, returning decoded predictions.
+"""
 
 from __future__ import annotations
 

@@ -1,4 +1,18 @@
-"""Evaluation utilities for FinQA baseline runs (modified from the official scripts)."""
+"""FinQA evaluation utilities.
+
+This module provides functions to normalize and compare model predictions
+against FinQA ground-truth answers. It supports:
+- Whitespace normalization and case-insensitive text comparison.
+- Robust numeric parsing that strips currency symbols, percent signs, and
+  thousand separators; also handles forms like "(123)" → -123 and
+  FinQA-style constants (e.g., ``const_m1``).
+- Magnitude alignment to tolerate scientific-scale mismatches when both
+  sides are numeric.
+
+Key entry point:
+- ``compute_accuracy``: computes FinQA-style execution accuracy and also
+  returns the parsed predictions and a match mask for downstream analysis.
+"""
 
 from __future__ import annotations
 

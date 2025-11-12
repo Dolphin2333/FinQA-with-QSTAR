@@ -14,6 +14,14 @@ from src.load_model import DEFAULT_MODEL_ID, load_baseline
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments for the FinQA baseline runner.
+
+    Returns
+    -------
+    argparse.Namespace
+        Parsed arguments including dataset location, split, model id,
+        generation settings, optional sample limit, and output path.
+    """
     parser = argparse.ArgumentParser(description="Run FinR1 baseline on the FinQA dataset.")
     parser.add_argument(
         "--dataset-dir",
@@ -24,8 +32,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--split",
         type=str,
-        default="dev",
-        help="Dataset split to evaluate (train/dev/test). Defaults to dev.",
+        default="test",
+        help="Dataset split to evaluate (train/dev/test). Defaults to test.",
     )
     parser.add_argument(
         "--model-name",
@@ -36,7 +44,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--max-new-tokens",
         type=int,
-        default=64,
+        default=4000,
         help="Maximum number of tokens generated for each answer.",
     )
     parser.add_argument(
@@ -67,6 +75,12 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    """Run the baseline pipeline end-to-end.
+
+    Loads the requested FinQA split, runs generation with the baseline
+    model, computes accuracy against ground-truth answers, and optionally
+    writes raw generations and a detailed predictions file to disk.
+    """
     args = parse_args()
     set_seed(42)
 

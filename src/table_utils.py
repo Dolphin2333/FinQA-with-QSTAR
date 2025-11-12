@@ -1,4 +1,12 @@
-"""Helper utilities to convert FinQA tables into readable text."""
+"""Table-to-text helpers for FinQA.
+
+Converts tabular data (header + rows) into short natural-language
+statements so that tables can be injected into LLM prompts.
+
+Main function:
+- ``table_to_text``: emits sentences like
+  "For <row0>, the <col1> is <val1>; the <col2> is <val2>." per row.
+"""
 
 from __future__ import annotations
 
