@@ -1,4 +1,12 @@
-"""Helper utilities to initialize baseline language models."""
+"""Model and tokenizer initialization for the baseline.
+
+Loads a causal language model and tokenizer (defaults to the Fin-R1
+checkpoint) and applies small compatibility tweaks for padding behavior.
+
+Primary API:
+- ``load_baseline``: returns ``(model, tokenizer)`` ready for inference,
+  with optional ``device_map`` and ``torch_dtype`` configuration.
+"""
 
 from __future__ import annotations
 

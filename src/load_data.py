@@ -1,4 +1,15 @@
-"""Utilities for loading and parsing the FinQA dataset."""
+"""Load and normalize FinQA data.
+
+This module reads FinQA JSON splits and converts them into structured
+``FinQASample`` instances with convenient, flattened fields for modeling.
+
+Features:
+- Joins list fields into plain text for ``pre_text``/``post_text`` and
+  ``model_input``; preserves the raw table as a 2D list of strings.
+- Tokenizes FinQA "program" strings using logic mirrored from the official
+  implementation.
+- Provides ``iter_answers`` to yield ground-truth answers in dataset order.
+"""
 
 from __future__ import annotations
 
@@ -49,6 +60,7 @@ class FinQASample:
     program_text: str
     program_tokens: Sequence[str]
     table: Sequence[Sequence[str]]
+    model_input: Sequence[str]
     pre_text: str
     post_text: str
     supporting_facts: Sequence[str]
@@ -83,6 +95,9 @@ def load_finqa_split(dataset_dir: Path, split: str) -> List[FinQASample]:
             pre_text=_flatten_text(entry.get("pre_text", "")),
             post_text=_flatten_text(entry.get("post_text", "")),
             supporting_facts=list(qa_blob.get("supporting_facts") or []),
+            model_input=[
+                _flatten_text(record[1]) for record in qa_blob.get("model_input") or [] if len(record) >= 2
+            ],
             metadata=entry,
         )
         examples.append(example)

@@ -1,5 +1,10 @@
-Project - Special Topics - Intro to LLM based Generative AI (1).pdf
-FinQA-main/
-.DS_Store
+.venv/
+.ipynb_checkpoints/
 __pycache__/
+data/*
+!data/test_100.json
+logs/*
 outputs/
+!outputs/finr1-test100.json
+
+

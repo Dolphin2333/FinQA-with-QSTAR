@@ -1,4 +1,18 @@
-"""Baseline inference utilities."""
+"""Baseline inference utilities.
+
+This module formats prompts for FinQA samples, runs autoregressive
+generation with a Hugging Face causal LM, and truncates output when the
+boxed numeric answer is complete.
+
+Highlights:
+- ``build_prompt`` assembles context from narrative text and table content
+  (converted to sentences) and instructs the model to return the final
+  result in ``\\boxed{...}``.
+- ``BoxedStoppingCriteria`` halts generation shortly after ``\\boxed{`` is
+  opened and the closing brace ``}`` is produced, preventing trailing text.
+- ``run_inference`` performs batched generation with temperature/top-p and
+  repetition penalty controls, returning decoded predictions.
+"""
 
 from __future__ import annotations
 
@@ -40,26 +54,33 @@ End your response immediately after the boxed answer — do not add any explanat
 
 
 class BoxedStoppingCriteria(StoppingCriteria):
-    def __init__(self, tokenizer, trigger="\\boxed{", extra_tokens=10):
-        self.tokenizer = tokenizer
-        self.trigger = trigger
+    def __init__(self, tokenizer, trigger="\\boxed{", close="}", min_after=1, max_after=8):
         self.trigger_ids = tokenizer.encode(trigger, add_special_tokens=False)
-        self.trigger_token_len = len(self.trigger_ids)
-        self.extra_tokens = extra_tokens
-        self.trigger_found = False
-        self.counter = 0
+        close_ids = tokenizer.encode(close, add_special_tokens=False)
+        self.close_id = close_ids[-1]
+        self.min_after = min_after
+        self.max_after = max_after
+        self.seen_trigger = False
+        self.after_count = 0
 
     def __call__(self, input_ids, scores, **kwargs):
-        seq = input_ids[0]
-        if not self.trigger_found:
-            if list(seq[-len(self.trigger_ids):]) == self.trigger_ids:
-                self.trigger_found = True
-                self.counter = 0
+        seq = input_ids[0].tolist()
+
+        if not self.seen_trigger:
+            if len(seq) >= len(self.trigger_ids) and seq[-len(self.trigger_ids):] == self.trigger_ids:
+                self.seen_trigger = True
+                self.after_count = 0
         else:
-            self.counter += 1
-            if self.counter >= self.extra_tokens:
+            self.after_count += 1
+            last_id = seq[-1]
+            if last_id == self.close_id and self.after_count >= self.min_after:
                 return True
+            if self.after_count >= self.max_after:
+                return True
+
         return False
+
+
 
 
 @torch.inference_mode()
@@ -103,7 +124,7 @@ Please use \\boxed{} to wrap the final answer\n\n"""
         )
         inputs = tokenizer(str_messages, return_tensors="pt").to(device)
 
-        criteria = BoxedStoppingCriteria(tokenizer, trigger="\\boxed{", extra_tokens=10)
+        criteria = BoxedStoppingCriteria(tokenizer,trigger="\\boxed{",close="}",min_after=1,max_after=8)
         generation_kwargs["stopping_criteria"] = StoppingCriteriaList([criteria])
         output_ids = model.generate(**inputs, **generation_kwargs)
         generated_ids = output_ids[0][inputs.input_ids.shape[-1] :]

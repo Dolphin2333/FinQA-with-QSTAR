@@ -1,10 +1,25 @@
-"""Evaluation utilities for FinQA baseline runs (modified from the official scripts)."""
+"""FinQA evaluation utilities.
+
+This module provides functions to normalize and compare model predictions
+against FinQA ground-truth answers. It supports:
+- Whitespace normalization and case-insensitive text comparison.
+- Robust numeric parsing that strips currency symbols, percent signs, and
+  thousand separators; also handles forms like "(123)" → -123 and
+  FinQA-style constants (e.g., ``const_m1``).
+- Magnitude alignment to tolerate scientific-scale mismatches when both
+  sides are numeric.
+
+Key entry point:
+- ``compute_accuracy``: computes FinQA-style execution accuracy and also
+  returns the parsed predictions and a match mask for downstream analysis.
+"""
 
 from __future__ import annotations
 
 import math
 import re
-from typing import Iterable, Optional
+from typing import Iterable, Optional, List, Tuple
+
 
 
 NUM_RE = re.compile(r"[-+]?\d+(?:\.\d+)?")
@@ -56,7 +71,7 @@ def _str_to_num(text: str) -> Optional[float]:
 
 
 def _normalize_magnitude(num1: float, num2: float) -> List[float]:
-    if num1 == 0 or num2 == 0 or math.isnan(num1) or math.isnan(num2):
+    if not math.isfinite(num1) or not math.isfinite(num2) or num1 == 0 or num2 == 0:
         return [num1, num2]
 
     mag1 = math.floor(math.log10(abs(num1)))
@@ -69,7 +84,7 @@ def _normalize_magnitude(num1: float, num2: float) -> List[float]:
         else:
             num1 *= 10**(-diff)
 
-    return [num1, num2]  
+    return [num1, num2] 
 
 
 def _extract_numeric_candidate(text: str) -> Optional[float]:
