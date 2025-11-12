@@ -24,7 +24,7 @@ export PYTHONPATH=/scratch/hz3916/FinQA-with-QSTAR
 # change the test set and output name as needed
 # —— run test 100 -- with random seed 3916
 python scripts/run_baseline.py \
-  --dataset-dir data/FinQA \
+  --dataset-dir data \
   --split test_100 \
   --model-name SUFE-AIFLM-Lab/Fin-R1 \
   --max-new-tokens 4000 \
