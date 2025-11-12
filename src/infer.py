@@ -1,7 +1,7 @@
 """Baseline inference utilities.
 
 This module formats prompts for FinQA samples, runs autoregressive
-generation with a Hugging Face causal LM, and truncates output when the
+generation with a Hugging Face causal LM, and stop generation when the
 boxed numeric answer is complete.
 
 Highlights:
@@ -10,7 +10,7 @@ Highlights:
   result in ``\\boxed{...}``.
 - ``BoxedStoppingCriteria`` halts generation shortly after ``\\boxed{`` is
   opened and the closing brace ``}`` is produced, preventing trailing text.
-- ``run_inference`` performs batched generation with temperature/top-p and
+- ``run_inference`` performs batched generation with temperature, top-p, and
   repetition penalty controls, returning decoded predictions.
 """
 
@@ -26,10 +26,20 @@ from .load_data import FinQASample
 from .table_utils import table_to_text
 
 
+SYSTEM_PROMPT = """You are a helpful AI Assistant that provides well-reasoned and detailed responses. 
+You first think about the reasoning process as an internal monologue and then provide the user with the answer. 
+Respond in the following format: <think>\n...\n</think>\n<answer>\n...\n</answer>
+Please use \\boxed{} to wrap the final answer\n\n"""
+
+TASK_PROMPT = """Please answer the given financial question based on the context."""
+
+ANSWER_FORMAT = """Show your reasoning step by step, then output only the final numeric result in the form \\boxed{value}. 
+End your response immediately after the boxed answer — do not add any explanation, summary, or extra text.\n\n"""
+
+
 def build_prompt(sample: FinQASample) -> str:
     """Format a FinQA prompt for autoregressive inference."""
-    context_parts: List[str] = ["""Please answer the given financial question based on the context.
-Context:"""]
+    context_parts: List[str] = [TASK_PROMPT + "\nContext:"]
 
     pre = sample.pre_text.strip()
     post = sample.post_text.strip()
@@ -46,41 +56,34 @@ Context:"""]
     if context_block:
         context_block += "\n\n"
 
-    answer_format = """
-Show your reasoning step by step, then output only the final numeric result in the form \\boxed{value}. 
-End your response immediately after the boxed answer — do not add any explanation, summary, or extra text.\n\n"""
-
-    return f"{context_block}Given the context, {sample.question}\n\n{answer_format}\n\n"
+    return f"{context_block}Given the context, {sample.question}\n\n{ANSWER_FORMAT}\n\n"
 
 
 class BoxedStoppingCriteria(StoppingCriteria):
+    """Stop generation after a boxed answer is complete."""
     def __init__(self, tokenizer, trigger="\\boxed{", close="}", min_after=1, max_after=8):
         self.trigger_ids = tokenizer.encode(trigger, add_special_tokens=False)
-        close_ids = tokenizer.encode(close, add_special_tokens=False)
-        self.close_id = close_ids[-1]
+        self.len_trigger_ids = len(self.trigger_ids)
+        self.close_id = tokenizer.encode(close, add_special_tokens=False)[-1]
         self.min_after = min_after
         self.max_after = max_after
         self.seen_trigger = False
         self.after_count = 0
 
     def __call__(self, input_ids, scores, **kwargs):
-        seq = input_ids[0].tolist()
+        seq = input_ids[0]
 
         if not self.seen_trigger:
-            if len(seq) >= len(self.trigger_ids) and seq[-len(self.trigger_ids):] == self.trigger_ids:
+            if seq[-self.len_trigger_ids:] == self.trigger_ids:
                 self.seen_trigger = True
-                self.after_count = 0
         else:
             self.after_count += 1
-            last_id = seq[-1]
-            if last_id == self.close_id and self.after_count >= self.min_after:
+            if seq[-1] == self.close_id and self.after_count >= self.min_after:
                 return True
             if self.after_count >= self.max_after:
                 return True
 
         return False
-
-
 
 
 @torch.inference_mode()
@@ -89,7 +92,7 @@ def run_inference(
     tokenizer: PreTrainedTokenizerBase,
     samples: Sequence[FinQASample],
     *,
-    max_new_tokens: int = 64,
+    max_new_tokens: int = 4000,
     temperature: float | None = None,
     top_p: float | None = None,
     repetition_penalty: float = 1.05,
@@ -108,15 +111,10 @@ def run_inference(
     if top_p is not None:
         generation_kwargs["top_p"] = top_p
 
-    system_prompt = """You are a helpful AI Assistant that provides well-reasoned and detailed responses. 
-You first think about the reasoning process as an internal monologue and then provide the user with the answer. 
-Respond in the following format: <think>\n...\n</think>\n<answer>\n...\n</answer>
-Please use \\boxed{} to wrap the final answer\n\n"""
-
     for sample in tqdm(samples):
         prompt = build_prompt(sample)
         messages=[
-            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt},
         ]
         str_messages = tokenizer.apply_chat_template(
