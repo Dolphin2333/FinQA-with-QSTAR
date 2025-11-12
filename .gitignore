@@ -1,10 +1,11 @@
-Fin-R1/
 .venv/
-outputs/
-logs/
 .ipynb_checkpoints/
 __pycache__/
-outputs/data/FinQA/*.json
 data/
 logs/
 outputs/
+
+!data/test_100.json
+!outputs/finr1-test100.json
+
+
