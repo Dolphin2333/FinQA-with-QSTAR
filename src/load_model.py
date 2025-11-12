@@ -33,10 +33,10 @@ def load_baseline(
     model_name:
         Hugging Face model identifier. Defaults to the public FinR1 checkpoint.
     device_map:
-        Passed to ``from_pretrained`` to control device placement. ``\"auto\"`` will
+        Passed to ``from_pretrained`` to control device placement. ``"auto"`` will
         shard across available GPUs if possible.
     torch_dtype:
-        Optional dtype override, e.g. ``torch.float16`` to reduce memory usage.
+        Optional dtype override, e.g. ``torch.bfloat16`` to reduce memory usage.
     use_auth_token:
         Personal access token for private models (if required).
 

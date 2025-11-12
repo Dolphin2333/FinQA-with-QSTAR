@@ -6,8 +6,6 @@ This module reads FinQA JSON splits and converts them into structured
 Features:
 - Joins list fields into plain text for ``pre_text``/``post_text`` and
   ``model_input``; preserves the raw table as a 2D list of strings.
-- Tokenizes FinQA "program" strings using logic mirrored from the official
-  implementation.
 - Provides ``iter_answers`` to yield ground-truth answers in dataset order.
 """
 
