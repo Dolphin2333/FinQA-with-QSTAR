@@ -6,12 +6,13 @@
 #SBATCH --time=04:00:00             
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=60G
-#SBATCH --output=logs/%x-%j.out     # output: logs/finqa-qwen-full-JOBID.out
-#SBATCH --error=logs/%x-%j.err      # err file
+#SBATCH --output=/scratch/hz3916/FinQA-with-QSTAR/logs/%x-%j.out
+#SBATCH --error=/scratch/hz3916/FinQA-with-QSTAR/logs/%x-%j.err
+
 
 # --- Setup ---
-mkdir -p logs outputs
 cd /scratch/hz3916/FinQA-with-QSTAR
+mkdir -p logs outputs
 source .venv/bin/activate
 
 export HF_HOME=/scratch/hz3916/.cache/huggingface  

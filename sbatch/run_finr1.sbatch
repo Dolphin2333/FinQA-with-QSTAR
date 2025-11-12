@@ -6,15 +6,15 @@
 #SBATCH --time=03:00:00
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=60G
-#SBATCH --output=logs/%x-%j.out
-#SBATCH --error=logs/%x-%j.err
+#SBATCH --output=/scratch/hz3916/FinQA-with-QSTAR/logs/%x-%j.out
+#SBATCH --error=/scratch/hz3916/FinQA-with-QSTAR/logs/%x-%j.err
 
-# —— make sure the paths are created ——
-mkdir -p logs
-mkdir -p outputs
+
+
 
 # cd my project path
 cd /scratch/hz3916/FinQA-with-QSTAR
+mkdir -p logs outputs
 source .venv/bin/activate
 
 export HF_HOME=/scratch/hz3916/.cache/huggingface
