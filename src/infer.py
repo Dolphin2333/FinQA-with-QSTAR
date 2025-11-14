@@ -26,15 +26,20 @@ from .load_data import FinQASample
 from .table_utils import table_to_text
 
 
-SYSTEM_PROMPT = """You are a helpful AI Assistant that provides well-reasoned and detailed responses. 
+SYSTEM_PROMPT_old = """You are a helpful AI Assistant that provides well-reasoned and detailed responses. 
 You first think about the reasoning process as an internal monologue and then provide the user with the answer. 
 Respond in the following format: <think>\n...\n</think>\n<answer>\n...\n</answer>
 Please use \\boxed{} to wrap the final answer\n\n"""
 
-TASK_PROMPT = """Please answer the given financial question based on the context."""
+TASK_PROMPT_old = """Please answer the given financial question based on the context."""
 
-ANSWER_FORMAT = """Show your reasoning step by step, then output only the final numeric result in the form \\boxed{value}. 
+ANSWER_FORMAT_old = """Show your reasoning step by step, then output only the final numeric result in the form \\boxed{value}. 
 End your response immediately after the boxed answer — do not add any explanation, summary, or extra text.\n\n"""
+
+SYSTEM_PROMPT = """You are FinR1, a financial reasoning assistant. You specialize in numerical reasoning, analysis of financial documents, and multi-step calculations. Always think step-by-step using clear intermediate reasoning."""
+TASK_PROMPT = """Given the financial context (tables + text) and a question, extract relevant numbers, reason step-by-step, and compute the final numeric answer."""
+ANSWER_FORMAT = """Provide your answer inside one LaTeX box: \\boxed{FINAL_ANSWER}"""
+
 
 
 def build_prompt(sample: FinQASample) -> str:
