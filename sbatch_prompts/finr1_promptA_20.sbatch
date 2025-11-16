@@ -1,6 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=finr1-promptA-20
 #SBATCH --account=csci_ga_3033_09-2025fa
+#SBATCH --partition=a100_1
 #SBATCH --gres=gpu:a100:1
 #SBATCH --time=00:30:00
 #SBATCH --cpus-per-task=4
