@@ -2,4 +2,5 @@
 .ipynb_checkpoints/
 __pycache__/
 logs/*
+wandb/*
 sbatch/run_bigp_*.sbatch
