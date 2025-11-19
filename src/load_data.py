@@ -14,7 +14,9 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Sequence
+from typing import Iterable, List, Sequence, Dict
+
+from .infer import build_prompt
 
 
 def _program_tokenization(program_text: str) -> List[str]:
@@ -106,3 +108,18 @@ def iter_answers(samples: Iterable[FinQASample]) -> Iterable[str]:
     """Yield ground-truth answers as strings."""
     for sample in samples:
         yield sample.answer
+
+
+def load_finqa_split_text_with_answer(
+    dataset_dir: Path, split: str, writer_batch_size: int = 200
+) -> List[Dict[str, str]]:
+    """
+    Load a FinQA split as texts that include 
+    both questions and ground-truth answers.
+    """
+    samples = load_finqa_split(dataset_dir, split)
+    texts = [
+        {"text": build_prompt(sample) + "Final answer: \\boxed{" + sample.answer + "}"}
+        for sample in samples
+    ]
+    return texts

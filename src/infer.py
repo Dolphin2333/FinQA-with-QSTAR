@@ -16,13 +16,12 @@ Highlights:
 
 from __future__ import annotations
 
-from typing import List, Sequence
+from typing import List, Sequence, Any
 from tqdm import tqdm
 
 import torch
 from transformers import PreTrainedModel, PreTrainedTokenizerBase, StoppingCriteria, StoppingCriteriaList
 
-from .load_data import FinQASample
 from .table_utils import table_to_text
 
 
@@ -37,7 +36,7 @@ ANSWER_FORMAT = """Show your reasoning step by step, then output only the final 
 End your response immediately after the boxed answer — do not add any explanation, summary, or extra text.\n\n"""
 
 
-def build_prompt(sample: FinQASample) -> str:
+def build_prompt(sample) -> str:
     """Format a FinQA prompt for autoregressive inference."""
     context_parts: List[str] = [TASK_PROMPT + "\nContext:"]
 
@@ -90,7 +89,7 @@ class BoxedStoppingCriteria(StoppingCriteria):
 def run_inference(
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizerBase,
-    samples: Sequence[FinQASample],
+    samples: Sequence[Any],
     *,
     max_new_tokens: int = 4000,
     temperature: float | None = None,
