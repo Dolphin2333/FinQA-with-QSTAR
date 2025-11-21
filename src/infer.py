@@ -36,9 +36,28 @@ TASK_PROMPT_old = """Please answer the given financial question based on the con
 ANSWER_FORMAT_old = """Show your reasoning step by step, then output only the final numeric result in the form \\boxed{value}. 
 End your response immediately after the boxed answer — do not add any explanation, summary, or extra text.\n\n"""
 
-SYSTEM_PROMPT = """You are FinR1, a financial reasoning assistant. You specialize in numerical reasoning, analysis of financial documents, and multi-step calculations. Always think step-by-step using clear intermediate reasoning."""
-TASK_PROMPT = """Given the financial context (tables + text) and a question, extract relevant numbers, reason step-by-step, and compute the final numeric answer."""
-ANSWER_FORMAT = """Provide your answer inside one LaTeX box: \\boxed{FINAL_ANSWER}"""
+
+SYSTEM_PROMPT_P1 = """You are a financial reasoning assistant.
+You will think step-by-step using hidden deliberate reasoning inside <think>...</think>.
+After reasoning, produce the final numeric answer inside a single LaTeX box."""
+
+TASK_PROMPT_P1 = """Use the financial context (text + tables) to extract relevant numbers,
+perform multi-step calculations, and derive the final result."""
+
+ANSWER_FORMAT_P1 = """Respond in the format:
+<think>
+(Your step-by-step reasoning here)
+</think>
+<answer>
+\\boxed{FINAL_ANSWER}
+</answer>
+"""
+
+
+SYSTEM_PROMPT = SYSTEM_PROMPT_P1
+TASK_PROMPT = TASK_PROMPT_P1
+ANSWER_FORMAT = ANSWER_FORMAT_P1
+
 
 
 
