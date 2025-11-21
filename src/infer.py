@@ -8,8 +8,8 @@ Highlights:
 - ``build_prompt`` assembles context from narrative text and table content
   (converted to sentences) and instructs the model to return the final
   result in ``\\boxed{...}``.
-- ``BoxedStoppingCriteria`` halts generation shortly after ``\\boxed{`` is
-  opened and the closing brace ``}`` is produced, preventing trailing text.
+- ``BoxedStoppingCriteria`` halts generation shortly after ``\\boxed{``
+  is opened and the closing brace ``}`` is produced, preventing trailing text.
 - ``run_inference`` performs batched generation with temperature, top-p, and
   repetition penalty controls, returning decoded predictions.
 """
@@ -54,11 +54,29 @@ ANSWER_FORMAT_P1 = """Respond in the format:
 """
 
 
+SYSTEM_PROMPT_P2 = """You are a helpful AI Assistant.
+You first think about the reasoning process as an internal monologue,
+and then provide the user with the final answer.
+
+Respond in the following format:
+<think>
+(step-by-step reasoning here)
+</think>
+<answer>
+...
+</answer>
+"""
+
+TASK_PROMPT_P2 = """Use the financial document (text + tables) to extract all relevant numbers,
+perform the necessary reasoning and calculations, and obtain the final numeric result."""
+
+ANSWER_FORMAT_P2 = """Provide ONLY the final answer inside a single LaTeX box: \\boxed{FINAL_ANSWER}.
+End your response immediately after the box with no extra text."""
+
+
 SYSTEM_PROMPT = SYSTEM_PROMPT_P1
 TASK_PROMPT = TASK_PROMPT_P1
 ANSWER_FORMAT = ANSWER_FORMAT_P1
-
-
 
 
 def build_prompt(sample: FinQASample) -> str:
@@ -80,7 +98,8 @@ def build_prompt(sample: FinQASample) -> str:
     if context_block:
         context_block += "\n\n"
 
-    return f"{context_block}Given the context, {sample.question}\n\n{ANSWER_FORMAT}\n\n"
+    # FIX: Removed ANSWER_FORMAT from prompt body
+    return f"{context_block}Given the context, {sample.question}"
 
 
 class BoxedStoppingCriteria(StoppingCriteria):
@@ -146,7 +165,7 @@ def run_inference(
         )
         inputs = tokenizer(str_messages, return_tensors="pt").to(device)
 
-        criteria = BoxedStoppingCriteria(tokenizer,trigger="\\boxed{",close="}",min_after=1,max_after=8)
+        criteria = BoxedStoppingCriteria(tokenizer, trigger="\\boxed{", close="}", min_after=1, max_after=8)
         generation_kwargs["stopping_criteria"] = StoppingCriteriaList([criteria])
         output_ids = model.generate(**inputs, **generation_kwargs)
         generated_ids = output_ids[0][inputs.input_ids.shape[-1] :]
