@@ -22,5 +22,5 @@ python scripts/run_baseline.py \
   --model-name SUFE-AIFLM-Lab/Fin-R1 \
   --limit 20 \
   --max-new-tokens 200 \
-  --output outputs/--output outputs/finr1_P1_20.json
+  --output outputs/finr1_P1_20.json
 
