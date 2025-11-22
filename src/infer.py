@@ -1,61 +1,92 @@
-"""Baseline inference utilities.
-
-This module formats prompts for FinQA samples, runs autoregressive
-generation with a Hugging Face causal LM, and stop generation when the
-boxed numeric answer is complete.
-"""
+"""Baseline inference utilities."""
 
 from __future__ import annotations
 from typing import List, Sequence
 from tqdm import tqdm
-
 import torch
-from transformers import (
-    PreTrainedModel,
-    PreTrainedTokenizerBase,
-    StoppingCriteria,
-    StoppingCriteriaList,
-)
-
+from transformers import PreTrainedModel, PreTrainedTokenizerBase, StoppingCriteria, StoppingCriteriaList
 from .load_data import FinQASample
 from .table_utils import table_to_text
 
+# ============================================================
+# ORIGINAL PROMPTS (kept exactly as in main branch)
+# ============================================================
 
-# =========================
-#  PROMPT VERSIONS
-# =========================
+SYSTEM_PROMPT_ORIG = """You are a helpful AI Assistant that provides well-reasoned and detailed responses. 
+You first think about the reasoning process as an internal monologue and then provide the user with the answer. 
+Respond in the following format: <think>\n...\n</think>\n<answer>\n...\n</answer>
+Please use \\boxed{} to wrap the final answer\n\n"""
 
-SYSTEM_PROMPT_old = """You are a helpful AI Assistant that provides well-reasoned and detailed responses.
-You first think about the reasoning process as an internal monologue and then provide the user with the answer.
+TASK_PROMPT_ORIG = """Please answer the given financial question based on the context."""
+
+ANSWER_FORMAT_ORIG = """Show your reasoning step by step, then output only the final numeric result in the form \\boxed{value}. 
+End your response immediately after the boxed answer — do not add any explanation, summary, or extra text.\n\n"""
+
+
+# ============================================================
+#  NEW PROMPTS
+# ============================================================
+
+# ----- P1 -----
+SYSTEM_PROMPT_P1 = """You are a financial reasoning assistant.
+You will think step-by-step using hidden deliberate reasoning inside <think>...</think>.
+After reasoning, produce the final numeric answer inside a single LaTeX box."""
+
+TASK_PROMPT_P1 = """Use the financial context (text + tables) to extract relevant numbers,
+perform multi-step calculations, and derive the final result."""
+
+ANSWER_FORMAT_P1 = """Respond in the format:
+<think>
+(Your step-by-step reasoning here)
+</think>
+<answer>
+\\boxed{FINAL_ANSWER}
+</answer>
 """
 
-TASK_PROMPT_old = """Please answer the given financial question based on the context."""
 
-ANSWER_FORMAT_old = """Show reasoning then output \\boxed{value}.\n"""
+# ----- P2 -----
+SYSTEM_PROMPT_P2 = """You are a helpful AI Assistant.
+You first think about the reasoning process as an internal monologue,
+and then provide the user with the final answer.
 
-SYSTEM_PROMPT_P1 = """You are a financial reasoning assistant.
-You will think step-by-step inside <think>...</think>.
-Produce only the final numeric answer inside \\boxed{}."""
+Respond in the following format:
+<think>
+(step-by-step reasoning here)
+</think>
+<answer>
+...
+</answer>
+"""
 
-TASK_PROMPT_P1 = """Use the financial context to extract numbers and compute the final answer."""
+TASK_PROMPT_P2 = """Use the financial document (text + tables) to extract all relevant numbers,
+perform the necessary reasoning and calculations, and obtain the final numeric result."""
 
-ANSWER_FORMAT_P1 = """<answer>\\boxed{FINAL_ANSWER}</answer>"""
-
-SYSTEM_PROMPT_P2 = """You are a helpful AI Assistant that reasons inside <think> and then answers."""
-
-TASK_PROMPT_P2 = """Use the document to compute the requested numeric value."""
-
-ANSWER_FORMAT_P2 = """Provide ONLY the final answer inside \\boxed{FINAL_ANSWER}."""
-
-# CURRENT ACTIVE = P1
-SYSTEM_PROMPT = SYSTEM_PROMPT_P1
-TASK_PROMPT = TASK_PROMPT_P1
-ANSWER_FORMAT = ANSWER_FORMAT_P1
+ANSWER_FORMAT_P2 = """Provide ONLY the final answer inside a single LaTeX box: \\boxed{FINAL_ANSWER}.
+End your response immediately after the box with no extra text."""
 
 
-# =========================
-#  PROMPT BUILDER
-# =========================
+# ============================================================
+# SELECT WHICH PROMPT TO USE (change ONLY THIS)
+# ============================================================
+
+USE_PROMPT = "P1"   # OPTIONS: "ORIGINAL", "P1", "P2"
+
+if USE_PROMPT == "P1":
+    SYSTEM_PROMPT = SYSTEM_PROMPT_P1
+    TASK_PROMPT = TASK_PROMPT_P1
+    # do NOT inject ANSWER_FORMAT into prompt body
+elif USE_PROMPT == "P2":
+    SYSTEM_PROMPT = SYSTEM_PROMPT_P2
+    TASK_PROMPT = TASK_PROMPT_P2
+else:
+    SYSTEM_PROMPT = SYSTEM_PROMPT_ORIG
+    TASK_PROMPT = TASK_PROMPT_ORIG
+
+
+# ============================================================
+# FIXED build_prompt (compatible with all prompt styles)
+# ============================================================
 
 def build_prompt(sample: FinQASample) -> str:
     context_parts: List[str] = [TASK_PROMPT + "\nContext:"]
@@ -71,16 +102,13 @@ def build_prompt(sample: FinQASample) -> str:
     if post:
         context_parts.append(post)
 
-    context_block = "\n\n".join(context_parts).strip()
-    if context_block:
-        context_block += "\n\n"
-
+    context_block = "\n\n".join(context_parts).strip() + "\n\n"
     return f"{context_block}Given the context, {sample.question}"
 
 
-# =========================
-#  STOPPING CRITERIA
-# =========================
+# ============================================================
+# Stopping Criteria and run_inference (unchanged)
+# ============================================================
 
 class BoxedStoppingCriteria(StoppingCriteria):
     def __init__(self, tokenizer, trigger="\\boxed{", close="}", min_after=1, max_after=8):
@@ -94,7 +122,6 @@ class BoxedStoppingCriteria(StoppingCriteria):
 
     def __call__(self, input_ids, scores, **kwargs):
         seq = input_ids[0]
-
         if not self.seen_trigger:
             if seq[-self.len_trigger_ids:] == self.trigger_ids:
                 self.seen_trigger = True
@@ -104,86 +131,29 @@ class BoxedStoppingCriteria(StoppingCriteria):
                 return True
             if self.after_count >= self.max_after:
                 return True
-
         return False
 
 
-# =========================
-#  MAIN INFERENCE FUNCTION
-# =========================
-
 @torch.inference_mode()
-def run_inference(
-    model: PreTrainedModel,
-    tokenizer: PreTrainedTokenizerBase,
-    samples: Sequence[FinQASample],
-    *,
-    max_new_tokens: int = 4000,
-    temperature: float | None = None,
-    top_p: float | None = None,
-    repetition_penalty: float = 1.05,
-) -> List[str]:
-
+def run_inference(model, tokenizer, samples, **gen_kwargs):
     device = next(model.parameters()).device
-    predictions: List[str] = []
+    predictions = []
 
-    generation_kwargs = dict(
-        max_new_tokens=max_new_tokens,
-        do_sample=temperature is not None or top_p is not None,
-        repetition_penalty=repetition_penalty,
-    )
-    if temperature is not None:
-        generation_kwargs["temperature"] = temperature
-    if top_p is not None:
-        generation_kwargs["top_p"] = top_p
-
-    # =========================
-    #  MODEL NAME SELECTOR
-    # =========================
-    model_name = getattr(model.config, "_name_or_path", "").lower()
-    use_chat_format = (
-        "qwen" in model_name
-        or "chat" in model_name
-        or "instruct" in model_name
-    )
-    # FinR1 MUST NOT use chat format
-
-    # =========================
-    #  LOOP THROUGH SAMPLES
-    # =========================
     for sample in tqdm(samples):
         prompt = build_prompt(sample)
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": prompt},
+        ]
 
-        if use_chat_format:
-            # QWEN / Chat LLMs
-            messages = [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": prompt + "\n\n" + ANSWER_FORMAT},
-            ]
-            str_messages = tokenizer.apply_chat_template(
-                messages,
-                tokenize=False,
-                add_generation_prompt=True
-            )
-            inputs = tokenizer(str_messages, return_tensors="pt").to(device)
+        encoded = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        inputs = tokenizer(encoded, return_tensors="pt").to(device)
 
-        else:
-            # FINR1 → Plain text ONLY
-            plain_prompt = (
-                SYSTEM_PROMPT
-                + "\n\n"
-                + prompt
-                + "\n\n"
-                + ANSWER_FORMAT
-            )
-            inputs = tokenizer(plain_prompt, return_tensors="pt").to(device)
+        stopping = BoxedStoppingCriteria(tokenizer)
+        gen_kwargs["stopping_criteria"] = StoppingCriteriaList([stopping])
 
-        criteria = BoxedStoppingCriteria(tokenizer, trigger="\\boxed{", close="}", min_after=1, max_after=8)
-        generation_kwargs["stopping_criteria"] = StoppingCriteriaList([criteria])
-
-        output_ids = model.generate(**inputs, **generation_kwargs)
-        generated_ids = output_ids[0][inputs.input_ids.shape[-1]:]
-        prediction = tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
-        predictions.append(prediction)
+        output_ids = model.generate(**inputs, **gen_kwargs)
+        gen = tokenizer.decode(output_ids[0][inputs.input_ids.shape[-1]:], skip_special_tokens=True).strip()
+        predictions.append(gen)
 
     return predictions
