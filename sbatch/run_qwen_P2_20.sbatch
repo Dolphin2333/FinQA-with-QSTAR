@@ -22,5 +22,5 @@ python scripts/run_baseline.py \
   --split test \
   --model-name Qwen/Qwen2.5-7B-Instruct \
   --limit 20 \
-  --max-new-tokens 2000 \
+  --max-new-tokens 4000 \
   --output outputs/qwen7B_P2_20.json
