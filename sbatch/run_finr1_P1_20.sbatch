@@ -18,9 +18,9 @@ export HF_HOME=/scratch/ssn9062/.cache/huggingface
 
 python scripts/run_baseline.py \
   --dataset-dir data \
-  --split dev \
+  --split test \
   --model-name SUFE-AIFLM-Lab/Fin-R1 \
   --limit 20 \
-  --max-new-tokens 200 \
+  --max-new-tokens 4000 \
   --output outputs/finr1_P1_20.json
 
