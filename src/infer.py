@@ -60,7 +60,7 @@ ANSWER_FORMAT_P1 = """
 """
 
 
-# ---- P2 ----
+# ---- P2 ---- (not used yet)
 SYSTEM_PROMPT_P2 = """You are a helpful AI Assistant.
 You think step-by-step inside <think>...</think> and then provide the final answer.
 """
@@ -71,7 +71,7 @@ ANSWER_FORMAT_P2 = """Output the final answer ONLY inside one LaTeX box: \\boxed
 
 
 # ============================================================
-# PROMPT SELECTION
+# PROMPT SELECTION (QWEN WILL USE P1)
 # ============================================================
 
 USE_PROMPT = "P1"   # OPTIONS: "ORIGINAL", "P1", "P2"
@@ -90,27 +90,51 @@ else:
     ANSWER_FORMAT = ANSWER_FORMAT_ORIG
 
 
+
 # ============================================================
-# BUILD PROMPT
-# FinR1 → plain-text prompt
-# Qwen  → chat messages handled later
+# FINR1-SPECIFIC VERSION OF P1  (SAFE, MINIMAL)
+# ============================================================
+
+FINR1_SYSTEM_PROMPT_P1 = """You are a financial QA assistant.
+Solve the problem step-by-step using numeric reasoning.
+Output ONLY the final numeric answer inside one \\boxed{}.
+"""
+
+FINR1_TASK_PROMPT_P1 = """Use the narrative and table to extract numbers and compute the final answer.
+Keep the reasoning short and focused.
+"""
+
+FINR1_ANSWER_FORMAT_P1 = """
+<think>
+(hidden reasoning)
+</think>
+<answer>
+\\boxed{FINAL_ANSWER}
+</answer>
+"""
+
+
+
+# ============================================================
+# BUILD PLAIN PROMPT (USED ONLY FOR FINR1)
 # ============================================================
 
 def build_plain_prompt(sample: FinQASample) -> str:
     """
     Used ONLY for FinR1.
-    Construct a FULL plain-text prompt with:
-    - SYSTEM_PROMPT
-    - TASK_PROMPT
-    - CONTEXT
-    - QUESTION
-    - ANSWER FORMAT
+    Now uses FinR1-safe P1 version.
     """
+
+    # --- override SYSTEM/TASK/ANSWER for FinR1 ---
+    system_prompt = FINR1_SYSTEM_PROMPT_P1
+    task_prompt   = FINR1_TASK_PROMPT_P1
+    answer_format = FINR1_ANSWER_FORMAT_P1
+
     pre = sample.pre_text.strip()
     post = sample.post_text.strip()
     table_text = table_to_text(sample.table)
 
-    context_parts = [TASK_PROMPT, "Context:"]
+    context_parts = [task_prompt, "Context:"]
     if pre:
         context_parts.append(pre)
     if table_text:
@@ -121,21 +145,28 @@ def build_plain_prompt(sample: FinQASample) -> str:
     context_block = "\n\n".join(context_parts)
 
     final_prompt = (
-        SYSTEM_PROMPT
+        system_prompt
         + "\n"
         + context_block
         + "\n\nGiven the context, " + sample.question + "\n\n"
-        + ANSWER_FORMAT
+        + answer_format
     )
 
     return final_prompt.strip()
 
+
+
+# ============================================================
+# BUILD CHAT PROMPT (QWEN)
+# Qwen P1 remains 100% UNTOUCHED
+# ============================================================
 
 def build_chat_prompt(sample: FinQASample) -> str:
     """
     Used for Qwen chat template.
     Only returns USER message content.
     """
+
     pre = sample.pre_text.strip()
     post = sample.post_text.strip()
     table_text = table_to_text(sample.table)
@@ -150,6 +181,7 @@ def build_chat_prompt(sample: FinQASample) -> str:
 
     context_block = "\n\n".join(context_parts)
     return f"{context_block}\n\nGiven the context, {sample.question}\n\n{ANSWER_FORMAT}"
+
 
 
 # ============================================================
@@ -180,6 +212,7 @@ class BoxedStoppingCriteria(StoppingCriteria):
         return False
 
 
+
 # ============================================================
 # RUN INFERENCE (WORKS FOR BOTH MODELS)
 # ============================================================
@@ -206,12 +239,13 @@ def run_inference(
 
         # ----------------------------------------------------
         # BRANCH 2 — Qwen (chat template)
+        #   *** UNTOUCHED ***
         # ----------------------------------------------------
         else:
             user_msg = build_chat_prompt(sample)
             messages = [
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_msg},
+                {"role": "user",  "content": user_msg},
             ]
             encoded = tokenizer.apply_chat_template(
                 messages,
