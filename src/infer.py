@@ -20,7 +20,7 @@ from .table_utils import table_to_text
 # PROMPT VERSION SELECTION
 # ============================================================
 
-USE_PROMPT = "P1"     # OPTIONS: "ORIGINAL", "P1"
+USE_PROMPT = "P2"     # OPTIONS: "ORIGINAL", "P1"
 
 # ------------ ORIGINAL (from main branch) -------------------
 
@@ -53,12 +53,47 @@ ANSWER_FORMAT_P1 = """
 </answer>
 """
 
+
+SYSTEM_PROMPT_P2 = """You are a financial computation assistant.
+You must carefully extract numbers from the context, perform accurate step-by-step calculations,
+and return ONLY a final numeric answer formatted inside a single LaTeX box.
+
+Always follow this format:
+<think>
+(detailed reasoning steps, computations, intermediate values)
+</think>
+<answer>
+\\boxed{FINAL_ANSWER}
+</answer>
+
+The final answer must be a pure number without units."""
+
+
+TASK_PROMPT_P2 = """Use the provided financial narrative and table to extract the correct values,
+perform multi-step reasoning, and compute the final numeric answer.
+Be careful: the context may contain distractor numbers or irrelevant lines."""
+
+
+ANSWER_FORMAT_P2 = """
+<think>
+(show all reasoning steps and calculations)
+</think>
+<answer>
+\\boxed{FINAL_ANSWER}
+</answer>
+"""
+
+
 # ------------ SELECT ACTIVE PROMPT ----------------------------
 
 if USE_PROMPT == "P1":
     SYSTEM_PROMPT = SYSTEM_PROMPT_P1
     TASK_PROMPT = TASK_PROMPT_P1
     ANSWER_FORMAT = ANSWER_FORMAT_P1
+elif USE_PROMPT == "P2":
+    SYSTEM_PROMPT = SYSTEM_PROMPT_P2
+    TASK_PROMPT = TASK_PROMPT_P2
+    ANSWER_FORMAT = ANSWER_FORMAT_P2    
 else:
     SYSTEM_PROMPT = SYSTEM_PROMPT_ORIG
     TASK_PROMPT = TASK_PROMPT_ORIG
