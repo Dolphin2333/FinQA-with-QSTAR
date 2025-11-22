@@ -19,8 +19,8 @@ export PYTHONPATH=/scratch/ssn9062/FinQA-with-QSTAR
 
 python scripts/run_baseline.py \
   --dataset-dir data \
-  --split dev \
+  --split test \
   --model-name Qwen/Qwen2.5-7B-Instruct \
   --limit 20 \
-  --max-new-tokens 2000 \
+  --max-new-tokens 4000 \
   --output outputs/qwen7B_P1_20.json
