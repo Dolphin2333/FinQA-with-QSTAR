@@ -83,17 +83,49 @@ ANSWER_FORMAT_P2 = """
 </answer>
 """
 
+# ------------ NEW P3 PROMPT (Program-of-Thought + Precision) -------------
+
+SYSTEM_PROMPT_P3 = """You are a financial reasoning assistant.
+You must analyze the financial context and extract a sequence of explicit mathematical operations.
+Always think inside <think>...</think> using the following rules:
+
+1. Identify ALL relevant numbers from the text and tables.
+2. Represent intermediate steps using explicit operators:
+   ADD(a,b), SUB(a,b), MUL(a,b), DIV(a,b), MAX(), MIN(), AVG(), TBL_SUM().
+3. Show each operation in order inside <think>.
+4. After completing the reasoning, compute the final numeric value.
+5. Output ONLY the final numeric result with two-decimal precision inside \\boxed{}.
+
+Do NOT output words, sentences, or explanations in the final answer.
+"""
+
+TASK_PROMPT_P3 = """Extract all relevant financial values, express intermediate steps using program-style operations, compute the final result, and return ONLY the final numeric output."""
+
+ANSWER_FORMAT_P3 = """
+<think>
+Extract numbers → write program-style operations (ADD(), SUB(), MUL(), DIV(), etc.) → compute result.
+</think>
+<answer>
+\\boxed{FINAL_NUMERIC_ANSWER}
+</answer>
+"""
+
+
 
 # ------------ SELECT ACTIVE PROMPT ----------------------------
 
-if USE_PROMPT == "P1":
+if USE_PROMPT == "P3":
     SYSTEM_PROMPT = SYSTEM_PROMPT_P1
     TASK_PROMPT = TASK_PROMPT_P1
     ANSWER_FORMAT = ANSWER_FORMAT_P1
 elif USE_PROMPT == "P2":
     SYSTEM_PROMPT = SYSTEM_PROMPT_P2
     TASK_PROMPT = TASK_PROMPT_P2
-    ANSWER_FORMAT = ANSWER_FORMAT_P2    
+    ANSWER_FORMAT = ANSWER_FORMAT_P2  
+elif USE_PROMPT == "P3":
+    SYSTEM_PROMPT = SYSTEM_PROMPT_P3
+    TASK_PROMPT = TASK_PROMPT_P3
+    ANSWER_FORMAT = ANSWER_FORMAT_P3      
 else:
     SYSTEM_PROMPT = SYSTEM_PROMPT_ORIG
     TASK_PROMPT = TASK_PROMPT_ORIG
