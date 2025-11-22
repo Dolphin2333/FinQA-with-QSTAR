@@ -1,4 +1,4 @@
-"""Baseline inference utilities."""
+"""Baseline inference utilities with switchable prompt variants."""
 
 from __future__ import annotations
 from typing import List, Sequence
@@ -16,11 +16,20 @@ from .table_utils import table_to_text
 
 
 # ============================================================
-# ORIGINAL FINR1-NATIVE PROMPTS (HIGH ACCURACY)
+# CHOOSE FINR1 PROMPT VERSION HERE
 # ============================================================
 
-FINR1_SYSTEM_PROMPT = """You are a helpful AI Assistant that provides well-reasoned and detailed responses.
-You first think about the reasoning process as an internal monologue and then provide the final answer.
+FINR1_PROMPT_VERSION = "P1"  
+# Options: "P0" (original 70% baseline), "P1" (your improved version)
+
+
+# ============================================================
+# FINR1 PROMPTS — MULTIPLE VARIANTS
+# ============================================================
+
+# ---- P0 (Original High-Accuracy Prompt) ----
+FINR1_SYSTEM_P0 = """You are a helpful AI Assistant that provides well-reasoned and detailed responses.
+You first think about the reasoning process as an internal monologue and then provide the user with the answer.
 Respond in the following format:
 <think>
 ...
@@ -30,11 +39,24 @@ Respond in the following format:
 </answer>
 """
 
-FINR1_TASK_PROMPT = """Please answer the financial question based on the provided context."""
+FINR1_TASK_P0 = "Please answer the given financial question based on the context."
 
-FINR1_ANSWER_FORMAT = """
+FINR1_ANSWER_P0 = """Show your reasoning step by step, then output only the final numeric result in the form \\boxed{value}.
+End your response immediately after the boxed answer — no extra text.
+"""
+
+
+# ---- P1 (Improved Reasoning Prompt Variant) ----
+FINR1_SYSTEM_P1 = """You are a financial analysis assistant.
+Think step-by-step inside <think>...</think> using precise numeric reasoning.
+Then provide ONLY the final number inside one LaTeX box.
+"""
+
+FINR1_TASK_P1 = """Use the financial context (narrative + table) to extract the relevant numbers and compute the answer."""
+
+FINR1_ANSWER_P1 = """
 <think>
-(step-by-step internal reasoning here)
+(hidden reasoning)
 </think>
 <answer>
 \\boxed{FINAL_ANSWER}
@@ -42,17 +64,23 @@ FINR1_ANSWER_FORMAT = """
 """
 
 
+# Map for easy switching
+FINR1_PROMPTS = {
+    "P0": (FINR1_SYSTEM_P0, FINR1_TASK_P0, FINR1_ANSWER_P0),
+    "P1": (FINR1_SYSTEM_P1, FINR1_TASK_P1, FINR1_ANSWER_P1),
+}
+
+
 # ============================================================
-# QWEN P1 PROMPTS (UNCHANGED — 80% ACCURACY)
+# QWEN PROMPTS (UNCHANGED — 80% ACCURACY)
 # ============================================================
 
 SYSTEM_PROMPT_QWEN = """You are a financial reasoning assistant.
-You think step-by-step inside <think>...</think>.
-After reasoning, produce ONLY the final numeric answer inside one LaTeX box inside <answer>...</answer>.
+Think step-by-step inside <think>...</think>.
+After reasoning, produce ONLY the final numeric answer inside a single LaTeX box.
 """
 
-TASK_PROMPT_QWEN = """Use the financial context (text + tables) to extract relevant numbers,
-perform multi-step calculations, and derive the final numeric answer."""
+TASK_PROMPT_QWEN = """Use the financial context to extract numbers and compute the final numeric result."""
 
 ANSWER_FORMAT_QWEN = """
 <think>
@@ -65,21 +93,16 @@ ANSWER_FORMAT_QWEN = """
 
 
 # ============================================================
-# BUILD PLAIN PROMPT (FINR1 — PLAIN TEXT, NO CHAT)
+# BUILD PROMPT (CHAT FORMAT FOR BOTH MODELS)
 # ============================================================
 
-def build_plain_prompt(sample: FinQASample) -> str:
-    """Strict FinR1-style formatting."""
-
-    system_prompt = FINR1_SYSTEM_PROMPT
-    task_prompt   = FINR1_TASK_PROMPT
-    answer_format = FINR1_ANSWER_FORMAT
+def build_user_prompt(task_prompt: str, answer_format: str, sample: FinQASample) -> str:
 
     pre = sample.pre_text.strip()
     post = sample.post_text.strip()
     table_text = table_to_text(sample.table)
 
-    parts = [task_prompt, "Context:"]
+    parts = [task_prompt + "\nContext:"]
     if pre:
         parts.append(pre)
     if table_text:
@@ -89,38 +112,9 @@ def build_plain_prompt(sample: FinQASample) -> str:
 
     context_block = "\n\n".join(parts)
 
-    full = (
-        system_prompt
-        + "\n"
-        + context_block
-        + "\n\nGiven the context, "
-        + sample.question
-        + "\n\n"
-        + answer_format
+    return (
+        f"{context_block}\n\nGiven the context, {sample.question}\n\n{answer_format}"
     )
-
-    return full.strip()
-
-
-# ============================================================
-# BUILD CHAT PROMPT (QWEN)
-# ============================================================
-
-def build_chat_prompt(sample: FinQASample) -> str:
-    pre = sample.pre_text.strip()
-    post = sample.post_text.strip()
-    table_text = table_to_text(sample.table)
-
-    parts = [TASK_PROMPT_QWEN + "\nContext:"]
-    if pre:
-        parts.append(pre)
-    if table_text:
-        parts.append("Table:\n" + table_text)
-    if post:
-        parts.append(post)
-
-    context_block = "\n\n".join(parts)
-    return f"{context_block}\n\nGiven the context, {sample.question}\n\n{ANSWER_FORMAT_QWEN}"
 
 
 # ============================================================
@@ -154,7 +148,7 @@ class BoxedStoppingCriteria(StoppingCriteria):
 
 
 # ============================================================
-# RUN INFERENCE (MODEL SWITCHING LOGIC)
+# RUN INFERENCE (MODEL-SWITCHING)
 # ============================================================
 
 @torch.inference_mode()
@@ -165,27 +159,27 @@ def run_inference(
     model_name: str,
     **gen_kwargs,
 ):
+
     device = next(model.parameters()).device
     predictions = []
+
+    # Select FINR1 prompt version
+    fin_system, fin_task, fin_answer = FINR1_PROMPTS[FINR1_PROMPT_VERSION]
 
     for sample in tqdm(samples):
 
         # ----------------------------------------------------
-        # FINR1 BRANCH (PLAIN PROMPT)
+        # FINR1 → Chat-based prompt (NOT plain text)
         # ----------------------------------------------------
-        if "SUFE-AIFLM-Lab/Fin-R1" in model_name or "Fin-R1" in model_name:
-            prompt = build_plain_prompt(sample)
-            inputs = tokenizer(prompt, return_tensors="pt").to(device)
+        if "Fin-R1" in model_name or "SUFE-AIFLM-Lab/Fin-R1" in model_name:
 
-        # ----------------------------------------------------
-        # QWEN BRANCH (CHAT PROMPT — UNTOUCHED)
-        # ----------------------------------------------------
-        else:
-            user_msg = build_chat_prompt(sample)
+            user_msg = build_user_prompt(fin_task, fin_answer, sample)
+
             messages = [
-                {"role": "system", "content": SYSTEM_PROMPT_QWEN},
-                {"role": "user",  "content": user_msg},
+                {"role": "system", "content": fin_system},
+                {"role": "user", "content": user_msg},
             ]
+
             encoded = tokenizer.apply_chat_template(
                 messages,
                 tokenize=False,
@@ -194,7 +188,25 @@ def run_inference(
             inputs = tokenizer(encoded, return_tensors="pt").to(device)
 
         # ----------------------------------------------------
-        # GENERATE
+        # QWEN → Unmodified P1 Chat Prompt
+        # ----------------------------------------------------
+        else:
+            user_msg = build_user_prompt(TASK_PROMPT_QWEN, ANSWER_FORMAT_QWEN, sample)
+
+            messages = [
+                {"role": "system", "content": SYSTEM_PROMPT_QWEN},
+                {"role": "user", "content": user_msg},
+            ]
+
+            encoded = tokenizer.apply_chat_template(
+                messages,
+                tokenize=False,
+                add_generation_prompt=True,
+            )
+            inputs = tokenizer(encoded, return_tensors="pt").to(device)
+
+        # ----------------------------------------------------
+        # GENERATION
         # ----------------------------------------------------
         stopping = BoxedStoppingCriteria(tokenizer)
         gen_kwargs["stopping_criteria"] = StoppingCriteriaList([stopping])
