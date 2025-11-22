@@ -16,30 +16,57 @@ from transformers import PreTrainedModel, PreTrainedTokenizerBase, StoppingCrite
 from .load_data import FinQASample
 from .table_utils import table_to_text
 
-
 # ============================================================
-# ★★ MODIFIED PROMPTS — VERSION P1-MODIFIED ★★
+# PROMPT VERSION SELECTION
 # ============================================================
 
-SYSTEM_PROMPT = """You are a financial reasoning assistant.
+USE_PROMPT = "P1"     # OPTIONS: "ORIGINAL", "P1"
+
+# ------------ ORIGINAL (from main branch) -------------------
+
+SYSTEM_PROMPT_ORIG = """You are a helpful AI Assistant that provides well-reasoned and detailed responses. 
+You first think about the reasoning process as an internal monologue and then provide the user with the answer. 
+Respond in the following format: <think>\n...\n</think>\n<answer>\n...\n</answer>
+Please use \\boxed{} to wrap the final answer\n\n"""
+
+TASK_PROMPT_ORIG = """Please answer the given financial question based on the context."""
+
+ANSWER_FORMAT_ORIG = """Show your reasoning step by step, then output only the final numeric result in the form \\boxed{value}. 
+End your response immediately after the boxed answer — do not add any explanation, summary, or extra text.\n\n"""
+
+# ------------ NEW P1 PROMPT (UNIFIED FOR BOTH MODELS) -------------
+
+SYSTEM_PROMPT_P1 = """You are a financial reasoning assistant.
 Think step-by-step inside <think>...</think>.
-Then provide ONLY the final numeric answer inside one LaTeX box in <answer>...</answer>.
+Use the given financial context (text + tables) to extract numbers and perform calculations.
+After reasoning, output ONLY the final numeric answer inside a single LaTeX box.
 """
 
-TASK_PROMPT = """Use the financial context (text + tables) to extract relevant values and compute the correct numeric answer."""
+TASK_PROMPT_P1 = """Use the context to identify relevant values and compute the correct final answer."""
 
-ANSWER_FORMAT = """
+ANSWER_FORMAT_P1 = """
 <think>
-Explain your reasoning step-by-step based only on the given numbers.
+(your reasoning steps here)
 </think>
 <answer>
 \\boxed{FINAL_ANSWER}
 </answer>
 """
 
+# ------------ SELECT ACTIVE PROMPT ----------------------------
+
+if USE_PROMPT == "P1":
+    SYSTEM_PROMPT = SYSTEM_PROMPT_P1
+    TASK_PROMPT = TASK_PROMPT_P1
+    ANSWER_FORMAT = ANSWER_FORMAT_P1
+else:
+    SYSTEM_PROMPT = SYSTEM_PROMPT_ORIG
+    TASK_PROMPT = TASK_PROMPT_ORIG
+    ANSWER_FORMAT = ANSWER_FORMAT_ORIG
+
 
 # ============================================================
-# ORIGINAL CODE (UNCHANGED)
+# BUILD PROMPT — SAME FOR BOTH MODELS
 # ============================================================
 
 def build_prompt(sample: FinQASample) -> str:
@@ -63,6 +90,10 @@ def build_prompt(sample: FinQASample) -> str:
 
     return f"{context_block}Given the context, {sample.question}\n\n{ANSWER_FORMAT}\n\n"
 
+
+# ============================================================
+# STOPPING CRITERIA
+# ============================================================
 
 class BoxedStoppingCriteria(StoppingCriteria):
     """Stop generation after a boxed answer is complete."""
@@ -91,6 +122,10 @@ class BoxedStoppingCriteria(StoppingCriteria):
         return False
 
 
+# ============================================================
+# RUN INFERENCE (UNCHANGED LOGIC)
+# ============================================================
+
 @torch.inference_mode()
 def run_inference(
     model: PreTrainedModel,
@@ -102,7 +137,7 @@ def run_inference(
     top_p: float | None = None,
     repetition_penalty: float = 1.05,
 ) -> List[str]:
-    """Generate answers for a list of :class:`FinQASample` inputs."""
+    """Generate answers for a list of FinQASample inputs."""
     device = next(model.parameters()).device
     predictions: List[str] = []
 
@@ -118,7 +153,7 @@ def run_inference(
 
     for sample in tqdm(samples):
         prompt = build_prompt(sample)
-        messages=[
+        messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt},
         ]
@@ -127,12 +162,19 @@ def run_inference(
         )
         inputs = tokenizer(str_messages, return_tensors="pt").to(device)
 
-        criteria = BoxedStoppingCriteria(tokenizer,trigger="\\boxed{",close="}",min_after=1,max_after=8)
+        criteria = BoxedStoppingCriteria(
+            tokenizer,
+            trigger="\\boxed{",
+            close="}",
+            min_after=1,
+            max_after=8,
+        )
         generation_kwargs["stopping_criteria"] = StoppingCriteriaList([criteria])
-        output_ids = model.generate(**inputs, **generation_kwargs)
-        generated_ids = output_ids[0][inputs.input_ids.shape[-1] :]
 
+        output_ids = model.generate(**inputs, **generation_kwargs)
+        generated_ids = output_ids[0][inputs.input_ids.shape[-1]:]
         prediction = tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
+
         predictions.append(prediction)
 
     return predictions

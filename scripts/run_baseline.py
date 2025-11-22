@@ -117,7 +117,7 @@ def main() -> None:
         model,
         tokenizer,
         samples,
-        args.model_name,  #SN
+       # args.model_name,  #SN
         max_new_tokens=args.max_new_tokens,
         temperature=args.temperature,
         top_p=args.top_p,
