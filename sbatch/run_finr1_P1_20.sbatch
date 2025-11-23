@@ -21,6 +21,6 @@ python scripts/run_baseline.py \
   --split test \
   --model-name SUFE-AIFLM-Lab/Fin-R1 \
   --limit 20 \
-  --max-new-tokens 2000 \
+  --max-new-tokens 4000 \
   --output outputs/finr1_P1_20.json
 
