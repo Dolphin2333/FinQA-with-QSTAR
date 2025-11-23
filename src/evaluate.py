@@ -77,9 +77,10 @@ def evaluate(pred_file: str):
     print("==========================================")
     print(f"Evaluating: {pred_file}")
     print("==========================================")
-    print(f"Formatting accuracy       : {fmt_acc:.4f}")
+    print(f"Formatting accuracy       : {fmt_acc * 100:.1f}%")
     print(f"Rationale length (avg)    : {avg_len:.1f} tokens")
     print(f"Rationale length (min/max): {min_len} / {max_len}")
+
     print("==========================================")
 
     return {
