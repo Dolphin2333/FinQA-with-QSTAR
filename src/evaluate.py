@@ -1,179 +1,99 @@
 """
-Unified evaluation script for FinQA generations.
-
-This script compares model-generated predictions (from run_baseline.py)
-against FinQA ground truth answers. It computes:
-
-- Exact-match accuracy
-- Boxed answer formatting accuracy
-- Average & range of rationale length (if <think>...</think> exists)
-- Lists mismatches for inspection
-
-Usage:
-    python src/evaluate.py --pred outputs/finr1_P1_20.json \
-                           --samples data/FinQA/test.json
+evaluate.py — Evaluate predictions from run_baseline.py
+Computes:
+- exact_match accuracy
+- formatting accuracy (# predictions with exactly one \boxed{...})
+- rationale length statistics
 """
 
 import json
-import argparse
 import re
 from pathlib import Path
-from statistics import mean
+from typing import Optional  # <-- Python 3.9 compatible
 
 
-# ------------------------------------------------------------
-# EXTRACT BOXED ANSWER
-# ------------------------------------------------------------
-
-BOXED_PATTERN = re.compile(r"\\boxed\{([^}]+)\}")
-
-def extract_boxed(text: str) -> str | None:
-    """Return the content inside \\boxed{...} or None."""
-    match = BOXED_PATTERN.search(text)
-    if match:
-        return match.group(1).strip()
-    return None
+BOX_PATTERN = re.compile(r"\\boxed\{([^}]*)\}")
 
 
-# ------------------------------------------------------------
-# EXTRACT THINK LENGTH
-# ------------------------------------------------------------
-
-def extract_reasoning_length(text: str) -> int:
-    """Count tokens inside <think>...</think> (approx via word count)."""
-    if "<think>" not in text or "</think>" not in text:
-        return 0
-    try:
-        inner = text.split("<think>")[1].split("</think>")[0]
-        return len(inner.split())
-    except:
-        return 0
-
-
-# ------------------------------------------------------------
-# LOAD JSON FILES
-# ------------------------------------------------------------
-
-def load_predictions(pred_path: Path):
-    """Loads predictions.json from run_baseline.py."""
-    with open(pred_path, "r", encoding="utf-8") as f:
+def load_predictions(path: str):
+    """Load the JSON predictions file produced by run_baseline.py."""
+    with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
-
-    preds = {}
-    for item in data:
-        preds[item["id"]] = {
-            "generation": item["generation"],
-            "prediction_text": item["prediction"],
-            "ground_truth": item["ground_truth"],
-        }
-    return preds
+    return data
 
 
-def load_samples(samples_path: Path):
-    """Loads Test/Dev FinQA data."""
-    with open(samples_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+def extract_boxed(text: str) -> Optional[str]:
+    """Extract the first \boxed{...} value."""
+    matches = BOX_PATTERN.findall(text)
+    return matches[0] if matches else None
 
 
-# ------------------------------------------------------------
-# METRICS
-# ------------------------------------------------------------
-
-def compute_accuracy(preds):
-    total = len(preds)
-    correct = sum(1 for _, p in preds.items() if p["match"])
-    return correct / total if total > 0 else 0
-
-
-def compute_format_accuracy(preds):
-    total = len(preds)
+def compute_formatting_accuracy(preds):
+    """Check how many predictions contain exactly one \boxed{}."""
     correct = 0
-    for _, p in preds.items():
-        if extract_boxed(p["generation"]) is not None:
+    for p in preds:
+        matches = BOX_PATTERN.findall(p)
+        if len(matches) == 1:
             correct += 1
-    return correct / total
+    return correct / len(preds)
 
 
-def compute_rationale_stats(preds):
-    lengths = [p["reasoning_length"] for _, p in preds.items()]
-    if not lengths:
-        return 0, 0, 0
-    return mean(lengths), min(lengths), max(lengths)
+def compute_rationale_length(pred: str) -> int:
+    """Count tokens inside <think>...</think> if present."""
+    if "<think>" in pred and "</think>" in pred:
+        inner = pred.split("<think>")[1].split("</think>")[0]
+        return len(inner.split())
+    return 0
 
 
-# ------------------------------------------------------------
-# MAIN EVALUATION LOGIC
-# ------------------------------------------------------------
+def evaluate(pred_file: str):
+    """Evaluate predictions and print metrics."""
+    data = load_predictions(pred_file)
 
-def evaluate(pred_path: Path, sample_path: Path):
+    preds = [d["generation"] for d in data]
+    targets = [d["ground_truth"] for d in data]
 
-    raw_preds = load_predictions(pred_path)
-    raw_samples = load_samples(sample_path)
+    # 1. exact-match accuracy
+    correct = 0
+    for p, t in zip(preds, targets):
+        boxed = extract_boxed(p)
+        if boxed is not None and boxed.strip() == str(t).strip():
+            correct += 1
 
-    # Build lookup for ground truths in FinQA format
-    gt_lookup = {item["id"]: item["answer"] for item in raw_samples}
+    accuracy = correct / len(preds)
 
-    processed = {}
+    # 2. formatting accuracy
+    fmt_acc = compute_formatting_accuracy(preds)
 
-    # Build processed dataset
-    for sample_id, item in raw_preds.items():
-        gt = gt_lookup.get(sample_id, None)
-        gen = item["generation"]
-        boxed = extract_boxed(gen)
-        reasoning_len = extract_reasoning_length(gen)
+    # 3. rationale length statistics
+    lengths = [compute_rationale_length(p) for p in preds]
+    avg_len = sum(lengths) / len(lengths)
+    min_len = min(lengths)
+    max_len = max(lengths)
 
-        match = False
-        if boxed is not None and gt is not None:
-            # Normalize both values
-            try:
-                match = float(boxed) == float(gt)
-            except:
-                match = boxed.strip() == str(gt).strip()
+    print("==========================================")
+    print(f"Evaluating: {pred_file}")
+    print("==========================================")
+    print(f"Exact-match accuracy      : {accuracy:.4f}")
+    print(f"Formatting accuracy       : {fmt_acc:.4f}")
+    print(f"Rationale length (avg)    : {avg_len:.1f} tokens")
+    print(f"Rationale length (min/max): {min_len} / {max_len}")
+    print("==========================================")
 
-        processed[sample_id] = {
-            "ground_truth": gt,
-            "prediction": boxed,
-            "match": match,
-            "generation": gen,
-            "reasoning_length": reasoning_len,
-        }
+    return {
+        "accuracy": accuracy,
+        "fmt_acc": fmt_acc,
+        "avg_len": avg_len,
+        "min_len": min_len,
+        "max_len": max_len,
+    }
 
-    # Compute metrics
-    acc = compute_accuracy(processed)
-    fmt_acc = compute_format_accuracy(processed)
-    mean_len, min_len, max_len = compute_rationale_stats(processed)
-
-    # Print summary table
-    print("\n================ Evaluation Summary ================")
-    print(f"Prediction file : {pred_path}")
-    print(f"Sample file     : {sample_path}")
-    print(f"Total samples   : {len(processed)}")
-    print("---------------------------------------------------")
-    print(f"Accuracy                    : {acc*100:.2f}%")
-    print(f"Formatting accuracy         : {fmt_acc*100:.2f}%")
-    print(f"Avg rationale length        : {mean_len:.1f} tokens")
-    print(f"Rationale length range      : {min_len} – {max_len}")
-    print("===================================================\n")
-
-    # Print mismatches
-    print("MISMATCHES:")
-    for sid, item in processed.items():
-        if not item["match"]:
-            print(f"- ID {sid}: predicted={item['prediction']}  |  gt={item['ground_truth']}")
-
-    return processed
-
-
-# ------------------------------------------------------------
-# CLI ENTRY
-# ------------------------------------------------------------
 
 if __name__ == "__main__":
+    import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pred", type=Path, required=True,
-                        help="Path to predictions JSON (from run_baseline.py)")
-    parser.add_argument("--samples", type=Path, required=True,
-                        help="Path to FinQA split JSON (test.json or dev.json)")
+    parser.add_argument("--pred", type=str, required=True,
+                        help="Path to predictions JSON file.")
     args = parser.parse_args()
 
-    evaluate(args.pred, args.samples)
+    evaluate(args.pred)
