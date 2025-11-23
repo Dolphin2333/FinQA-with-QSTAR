@@ -20,7 +20,7 @@ from .table_utils import table_to_text
 # PROMPT VERSION SELECTION
 # ============================================================
 
-USE_PROMPT = "P3"     # OPTIONS: "ORIGINAL", "P1"
+USE_PROMPT = "P1"     # OPTIONS: "ORIGINAL", "P1"
 
 # ------------ ORIGINAL (from main branch) -------------------
 
