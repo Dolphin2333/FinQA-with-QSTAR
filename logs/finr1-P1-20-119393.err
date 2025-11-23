@@ -1,0 +1,9 @@
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:33<01:39, 33.11s/it]Loading checkpoint shards:  50%|█████     | 2/4 [01:05<01:04, 32.50s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [01:33<00:30, 30.81s/it]Loading checkpoint shards: 100%|██████████| 4/4 [01:41<00:00, 21.50s/it]Loading checkpoint shards: 100%|██████████| 4/4 [01:41<00:00, 25.30s/it]
+Traceback (most recent call last):
+  File "/scratch/ssn9062/FinQA-with-QSTAR/scripts/run_baseline.py", line 171, in <module>
+    main()
+  File "/scratch/ssn9062/FinQA-with-QSTAR/scripts/run_baseline.py", line 116, in main
+    generations = run_inference(
+  File "/scratch/ssn9062/FinQA-with-QSTAR/.venv/lib/python3.9/site-packages/torch/utils/_contextlib.py", line 120, in decorate_context
+    return func(*args, **kwargs)
+TypeError: run_inference() missing 1 required positional argument: 'model_name'
