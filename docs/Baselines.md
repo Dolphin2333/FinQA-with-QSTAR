@@ -37,17 +37,15 @@ max_new_tokens=4000, temperature=0.7, top_p=0.8, repetition_penalty=1.05
 | **Model**               | **Accuracy** | **# Correct / # Total** | **Notes** |
 |-------------------------|--------------|--------------------------|-----------|
 | **FinR1 (SUFE Fin-R1)** | **70%**      | **14 / 20**              | Strong performance, stable formatting, no hallucinated outputs. |
-| **Qwen2.5-7B-Instruct** | **80%**      | **16 / 20**              | Best-performing baseline; consistently follows <think>…</think> + \boxed{} format. |
+| **Qwen2.5-7B-Instruct** | **60%**      | **16 / 20**              | Performs well but lower than earlier runs; prefers clear tag structure. |
 
 ## Interpretation of P1 Results
 
-The P1 prompt turned out to be a very solid baseline for both models.
-FinR1 reached 70% accuracy, which shows that it performs well when the instructions are simple, structured, and not overloaded with too many constraints. The model clearly benefits from the clean <think> and <answer> format, and it follows the boxed-answer requirement without drifting or hallucinating.
+The P1 prompt continues to be a strong baseline for both models. FinR1 remains highly stable at 70%, showing it handles clean reasoning prompts extremely well and rarely drifts outside the expected answer.
 
-Qwen, on the other hand, hit 80%, which is the strongest performance we’ve seen so far. Qwen seems to really like explicit tags and clear reasoning scaffolding. It follows the format almost perfectly and tends to give clean numerical answers without extra explanation. The combination of structured instructions + LaTeX boxed answer seems to align well with its training style.
+Qwen achieved 60% on this controlled run, which is lower than previous exploratory runs but still solid. Qwen clearly prefers structured tag-based prompts, and P1 aligns well with that preference. Its numerical extraction is generally good, and formatting is consistent.
 
-Overall, P1 shows that a single unified prompt can work well for both models, with Qwen taking a small lead in accuracy. It also gives us a clean reference point as we explore more advanced prompts like P2 and beyond.
-
+Overall, P1 remains a reliable baseline prompt to compare other variants against.
 
 
 # P2 — Structured Financial Extraction Prompt
@@ -103,4 +101,66 @@ repetition_penalty = 1.05
 
 FinR1 stays very stable at 70% → robust to prompt P2.
 
-Qwen dropped from 80% → 50% → P2 harms Qwen because P2 forces a more structured CoT + explanation + formatted answer block, which Qwen doesn’t follow consistently.
+Qwen dropped from 70% → 50% → P2 harms Qwen because P2 forces a more structured CoT + explanation + formatted answer block, which Qwen doesn’t follow consistently.
+
+# P3 — Structured Extractive Reasoning Prompt
+
+## Purpose
+
+A more structured “extract → calculate → answer” prompt inspired by:
+
+FinR1 GitHub’s original instruction style
+
+Aiera FinQA benchmarking article
+
+Programmer.ie explanations on extract–operate–answer reasoning
+
+The goal of P3 is to force the model into a more deterministic, step-organized reasoning pattern while still returning a final boxed answer.
+
+## Exact Prompt Used (inside infer.py)
+
+### System Prompt
+
+SYSTEM_PROMPT_P3 = """You are a financial QA assistant.
+Break down the problem into structured steps:
+1. Extract all relevant numbers from the context.
+2. Identify required operations.
+3. Perform calculations carefully.
+After that, return ONLY the final result in one LaTeX box."""
+
+
+TASK_PROMPT_P3 = """Extract numbers, outline the steps, compute carefully, and ensure a consistent numeric answer."""
+
+ANSWER_FORMAT_P3 = """
+<think>
+Step 1: Extract key numbers.
+Step 2: Identify the correct operations.
+Step 3: Perform calculations.
+</think>
+<answer>
+\\boxed{FINAL_ANSWER}
+</answer>
+"""
+
+## Generation Settings
+
+max_new_tokens=4000
+temperature=0.7
+top_p=0.8
+repetition_penalty=1.05
+
+## P3 Evaluation Summary (20 Samples)
+
+
+| **Model**               | **Accuracy** | **# Correct / # Total** | **Notes** |
+|-------------------------|--------------|--------------------------|-----------|
+| **FinR1 (SUFE Fin-R1)** | **70%**      | **14 / 20**              | Stable across P1, P2, P3. Consistent reasoning style; prompt structure does not significantly affect performance. |
+| **Qwen2.5-7B-Instruct** | **60%**      | **12 / 20**              | Better than P2 (50%), worse than P1 (80%). Handles structured prompts moderately well but prefers flexible CoT formats. |
+
+## Interpretation
+
+FinR1 again remains extremely stable at 70% across P1, P2, and P3 — confirming that its training style is deeply aligned with structured financial reasoning.
+
+Qwen improves from 50% (P2) to 60% (P3). The structured steps in P3 help it focus better than the free-form extraction in P2, but it still performs best with the more lightweight structure of P1.
+
+Qwen clearly prefers prompts that give it flexibility in reasoning, while FinR1 remains remarkably robust across all tested prompt formats.
