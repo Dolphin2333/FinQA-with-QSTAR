@@ -1,20 +1,26 @@
 """
 evaluate.py — Evaluate predictions from run_baseline.py
-Computes:
-- exact_match accuracy (existing logic, inline)
+
+Computes ONLY:
 - formatting accuracy (# predictions with exactly one \boxed{...})
 - rationale length statistics
+
+Accuracy is computed in run_baseline.py, NOT here.
 """
 
 import json
 import re
 from typing import Optional
 
+
 BOX_PATTERN = re.compile(r"\\boxed\{([^}]*)\}")
 
 
+# ---------------------------------------------------------
+# LOAD / UTILS
+# ---------------------------------------------------------
 def load_predictions(path: str):
-    """Load the JSON predictions file produced by run_baseline.py."""
+    """Load the JSON predictions file."""
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
     return data
@@ -27,9 +33,8 @@ def extract_boxed(text: str) -> Optional[str]:
 
 
 # ---------------------------------------------------------
-# ONLY TWO NEW FUNCTIONS AS REQUESTED
+# TWO NEW FUNCTIONS AS REQUIRED
 # ---------------------------------------------------------
-
 def compute_formatting_accuracy(preds):
     """Percentage of predictions containing exactly ONE valid \\boxed{...}."""
     correct = 0
@@ -55,42 +60,29 @@ def compute_rationale_stats(preds):
 
 
 # ---------------------------------------------------------
-# MAIN EVALUATION (inline accuracy logic preserved)
+# MAIN EVALUATION 
 # ---------------------------------------------------------
-
 def evaluate(pred_file: str):
-    """Evaluate predictions and print metrics."""
+    """Evaluate formatting + rationale statistics only."""
     data = load_predictions(pred_file)
 
     preds = [d["generation"] for d in data]
-    targets = [d["ground_truth"] for d in data]
 
-    # 1️⃣ Exact-match accuracy (existing logic preserved)
-    correct = 0
-    for p, t in zip(preds, targets):
-        boxed = extract_boxed(p)
-        if boxed is not None and boxed.strip() == str(t).strip():
-            correct += 1
-    accuracy = correct / len(preds)
-
-    # 2️⃣ Formatting accuracy
+    # Formatting accuracy
     fmt_acc = compute_formatting_accuracy(preds)
 
-    # 3️⃣ Rationale length statistics
+    # Rationale stats
     avg_len, min_len, max_len = compute_rationale_stats(preds)
 
-    # Print results
     print("==========================================")
     print(f"Evaluating: {pred_file}")
     print("==========================================")
-    print(f"Exact-match accuracy      : {accuracy:.4f}")
     print(f"Formatting accuracy       : {fmt_acc:.4f}")
     print(f"Rationale length (avg)    : {avg_len:.1f} tokens")
     print(f"Rationale length (min/max): {min_len} / {max_len}")
     print("==========================================")
 
     return {
-        "accuracy": accuracy,
         "fmt_acc": fmt_acc,
         "avg_len": avg_len,
         "min_len": min_len,
