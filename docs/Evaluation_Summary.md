@@ -1,54 +1,52 @@
-# Evaluation Summary (FinR1 & Qwen7B)
+# Evaluation Summary for FinR1 and Qwen7B-Instruct  
+This document summarizes the behavior of **FinR1** and **Qwen7B-Instruct** across three prompt variants (P1, P2, P3) on a 20-sample FinQA dev subset.  
+Metrics evaluated:
 
-Dataset: FinQA (20-sample dev subset)
-Metrics:
+- **Formatting Accuracy** → % outputs with exactly one valid `\boxed{...}`  
+- **Rationale Length** → tokens inside `<think>...</think>`
 
-Formatting Accuracy → % outputs with exactly one valid \boxed{...}
+---
 
-Rationale Length → tokens inside <think>...</think>
+## FinR1 Results  
+FinR1 naturally produces long chain-of-thought explanations. Prompt structure strongly influences depth, with reasoning growing from **P1 → P2 → P3**.
 
-## FinR1 Results
+| Model | Prompt | Formatting Accuracy | Avg Rationale Tokens | Min | Max  |
+|--------|--------|----------------------|------------------------|-----|------|
+| FinR1 | P1 | **55%** | **539.8** | 0 | 1636 |
+| FinR1 | P2 | **65%** | **642.0** | 0 | 1604 |
+| FinR1 | P3 | **65%** | **825.5** | 0 | 2160 |
 
-FinR1 generates long chain-of-thought and is sensitive to prompt structure.
-Reasoning depth increases from P1 → P2 → P3.
+### **FinR1 Interpretation**  
+- P1 produces shorter and less stable reasoning.  
+- P2 improves structure, with moderate reasoning length.  
+- **P3 generates the longest and most complete reasoning**, allowing FinR1 to use its full multi-step capabilities.  
+  - This is why **P3 is recommended over P2**, even though formatting accuracy is tied — P3 encourages deeper, more consistent reasoning.
 
-Model	Prompt	Formatting Accuracy	Avg Rationale	Min	Max
-FinR1	P1	55%	539.8	0	1636
-FinR1	P2	65%	642.0	0	1604
-FinR1	P3	65%	825.5	0	2160
-FinR1 Observations
+---
 
-P3 consistently produces the longest and richest reasoning.
+## Qwen7B-Instruct Results  
+Qwen prefers short, compact reasoning. It is stable on P1 and P3, but P2 disrupts formatting.
 
-P1 is unstable and produces the most formatting errors.
+| Model | Prompt | Formatting Accuracy | Avg Rationale Tokens | Min | Max |
+|--------|--------|----------------------|------------------------|-----|-----|
+| Qwen7B | P1 | **95%** | **56.3** | 0 | 121 |
+| Qwen7B | P2 | **55%** | **78.5** | 0 | 291 |
+| Qwen7B | P3 | **95%** | **56.3** | 0 | 121 |
 
-Some outputs have missing <think> sections (min = 0 tokens).
+### **Qwen Interpretation**  
+- P1 and P3 give extremely stable formatting (95%).  
+- P2 increases verbosity and reduces structure.  
+- Qwen does not benefit from long reasoning, and performs similarly at 2k vs 4k output tokens.
 
-FinR1 benefits from higher max_new_tokens (≥ 4000) to avoid truncation.
+---
 
+## Recommended Prompt Choices
 
-## Qwen7B-Instruct Results
+| Model | Best Prompt(s) | Reason |
+|--------|------------------|--------|
+| **FinR1** | **P3** | Produces deeper and more complete reasoning than P2 |
+| **Qwen7B** | **P1 or P3** | Most stable formatting (95%) with concise reasoning |
 
-Qwen prefers short, compact reasoning and is highly stable with P1 and P3.
+---
 
-Model	Prompt	Formatting Accuracy	Avg Rationale	Min	Max
-Qwen7B	P1	95%	56.3	0	121
-Qwen7B	P2	55%	78.5	0	291
-Qwen7B	P3	95%	56.3	0	121
-Qwen Observations
-
-P1 and P3 yield very stable formatting (~95%).
-
-P2 breaks structure and drops to 55% formatting accuracy.
-
-Qwen produces very short rationales (50–80 tokens).
-
-Qwen performance is similar with 2000 vs 4000 tokens; no need for large limits.
-
-## Overall Findings
-
-FinR1 → Heavy CoT model, needs long generation and performs best on P3.
-
-Qwen7B → Minimal CoT model, stable on P1 and P3, unstable on P2.
-
-Long chain-of-thought does not equal higher formatting accuracy — results vary by model.
+This evaluation shows that **FinR1 thrives with richer multi-step reasoning**, while **Qwen7B performs best with concise, lightweight prompts**.
