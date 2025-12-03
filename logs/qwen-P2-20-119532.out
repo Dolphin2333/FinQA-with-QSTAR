@@ -1,0 +1,6 @@
+Loaded 20 samples from FinQA test split.
+Backing up raw generations to outputs/qwen7B_P2_20.raw.json...
+Wrote raw generations to outputs/qwen7B_P2_20.raw.json
+Accuracy: 50.00% (0.5000)
+Wrote predictions to outputs/qwen7B_P2_20.json
+Delete backup generations at outputs/qwen7B_P2_20.raw.json

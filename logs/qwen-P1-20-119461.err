@@ -1,0 +1,9 @@
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:28<01:24, 28.01s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:52<00:52, 26.07s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [01:17<00:25, 25.33s/it]Loading checkpoint shards: 100%|██████████| 4/4 [01:39<00:00, 24.07s/it]Loading checkpoint shards: 100%|██████████| 4/4 [01:39<00:00, 24.83s/it]
+Traceback (most recent call last):
+  File "/scratch/ssn9062/FinQA-with-QSTAR/scripts/run_baseline.py", line 172, in <module>
+    main()
+  File "/scratch/ssn9062/FinQA-with-QSTAR/scripts/run_baseline.py", line 116, in main
+    generations = run_inference(
+  File "/scratch/ssn9062/FinQA-with-QSTAR/.venv/lib/python3.9/site-packages/torch/utils/_contextlib.py", line 120, in decorate_context
+    return func(*args, **kwargs)
+TypeError: run_inference() takes 3 positional arguments but 4 positional arguments (and 4 keyword-only arguments) were given
