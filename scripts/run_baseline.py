@@ -139,8 +139,22 @@ def main() -> None:
             json.dump(raw_serializable, f, indent=2, ensure_ascii=False)
         print(f"Wrote raw generations to {temp_output}")
 
+    # Answer accuracy
     accuracy, preds, matches = compute_accuracy(generations, list(iter_answers(samples)))
-    print(f"Accuracy: {accuracy * 100:.2f}% ({accuracy:.4f})")
+
+    # Formatting accuracy
+    fmt_acc = compute_formatting_accuracy(generations)
+
+    # Rationale stats
+    avg_len, min_len, max_len = compute_rationale_stats(generations)
+    
+    print("==========================================")
+    print(f"Answer accuracy.          : {accuracy * 100:.1f}%")
+    print(f"Formatting accuracy       : {fmt_acc * 100:.1f}%")
+    print(f"Rationale length (avg)    : {avg_len:.1f} tokens")
+    print(f"Rationale length (min/max): {min_len} / {max_len}")
+
+    print("==========================================")
 
     if args.output:
         serializable = [
