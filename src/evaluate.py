@@ -12,7 +12,7 @@ import json
 import re
 from typing import Optional
 
-from eval_finq import compute_accuracy
+from .eval_finq import compute_accuracy
 
 
 BOX_PATTERN = re.compile(r"\\boxed\{([^}]*)\}")
