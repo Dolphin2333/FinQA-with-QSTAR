@@ -7,13 +7,12 @@ boxed numeric answer is complete.
 
 from __future__ import annotations
 
-from typing import List, Sequence
+from typing import List, Sequence, Any
 from tqdm import tqdm
 
 import torch
 from transformers import PreTrainedModel, PreTrainedTokenizerBase, StoppingCriteria, StoppingCriteriaList
 
-from .load_data import FinQASample
 from .table_utils import table_to_text
 
 # ============================================================
@@ -136,7 +135,7 @@ else:
 # BUILD PROMPT — SAME FOR BOTH MODELS
 # ============================================================
 
-def build_prompt(sample: FinQASample) -> str:
+def build_prompt(sample) -> str:
     """Format a FinQA prompt for autoregressive inference."""
     context_parts: List[str] = [TASK_PROMPT + "\nContext:"]
 
@@ -197,7 +196,7 @@ class BoxedStoppingCriteria(StoppingCriteria):
 def run_inference(
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizerBase,
-    samples: Sequence[FinQASample],
+    samples: Sequence[Any],
     *,
     max_new_tokens: int = 4000,
     temperature: float | None = None,

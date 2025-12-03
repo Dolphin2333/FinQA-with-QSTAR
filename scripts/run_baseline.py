@@ -11,7 +11,7 @@ from accelerate.utils import set_seed
 from src.eval_finqa import compute_accuracy
 from src.evaluate import compute_formatting_accuracy, compute_rationale_stats
 from src.infer import run_inference
-from src.load_data import FinQASample, iter_answers, load_finqa_split
+from src.load_data import iter_answers, load_finqa_split
 from src.load_model import DEFAULT_MODEL_ID, load_baseline
 
 
