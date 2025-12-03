@@ -12,6 +12,8 @@ import json
 import re
 from typing import Optional
 
+from eval_finq import compute_accuracy
+
 
 BOX_PATTERN = re.compile(r"\\boxed\{([^}]*)\}")
 
@@ -67,6 +69,10 @@ def evaluate(pred_file: str):
     data = load_predictions(pred_file)
 
     preds = [d["generation"] for d in data]
+    true = [d["ground_truth"] for d in data]
+
+    # Answer accuracy
+    accuracy, _, _ = compute_accuracy(preds, true)
 
     # Formatting accuracy
     fmt_acc = compute_formatting_accuracy(preds)
@@ -77,6 +83,7 @@ def evaluate(pred_file: str):
     print("==========================================")
     print(f"Evaluating: {pred_file}")
     print("==========================================")
+    print(f"Answer accuracy.          : {accuracy * 100:.1f}%")
     print(f"Formatting accuracy       : {fmt_acc * 100:.1f}%")
     print(f"Rationale length (avg)    : {avg_len:.1f} tokens")
     print(f"Rationale length (min/max): {min_len} / {max_len}")
@@ -84,6 +91,7 @@ def evaluate(pred_file: str):
     print("==========================================")
 
     return {
+        "accuracy": accuracy,
         "fmt_acc": fmt_acc,
         "avg_len": avg_len,
         "min_len": min_len,
