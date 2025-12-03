@@ -1,6 +1,0 @@
-Loaded 20 samples from FinQA dev split.
-Backing up raw generations to outputs/finr1_promptA_20.raw.json...
-Wrote raw generations to outputs/finr1_promptA_20.raw.json
-Accuracy: 20.00% (0.2000)
-Wrote predictions to outputs/finr1_promptA_20.json
-Delete backup generations at outputs/finr1_promptA_20.raw.json

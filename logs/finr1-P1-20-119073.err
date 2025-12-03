@@ -1,8 +1,0 @@
-usage: run_baseline.py [-h] [--dataset-dir DATASET_DIR] [--split SPLIT]
-                       [--model-name MODEL_NAME]
-                       [--max-new-tokens MAX_NEW_TOKENS]
-                       [--temperature TEMPERATURE] [--top-p TOP_P]
-                       [--repetition-penalty REPETITION_PENALTY]
-                       [--offset OFFSET] [--limit LIMIT] [--output OUTPUT]
-                       [--seed SEED]
-run_baseline.py: error: unrecognized arguments: outputs/finr1_P1_20.json

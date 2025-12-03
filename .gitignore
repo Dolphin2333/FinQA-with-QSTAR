@@ -3,3 +3,5 @@
 __pycache__/
 logs/*
 sbatch/run_bigp_*.sbatch
+sbatch/*P2*.sbatch
+sbatch/*P3*.sbatch

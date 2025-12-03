@@ -1,7 +1,0 @@
-Starting test100 on Qwen/Qwen2.5-7B-Instruct...
-Loaded 100 samples from FinQA test_100 split.
-Backing up raw generations to outputs/Qwen7b-Instruct-test_100.raw.json...
-Wrote raw generations to outputs/Qwen7b-Instruct-test_100.raw.json
-Accuracy: 29.00% (0.2900)
-Wrote predictions to outputs/Qwen7b-Instruct-test_100.json
-Delete backup generations at outputs/Qwen7b-Instruct-test_100.raw.json
