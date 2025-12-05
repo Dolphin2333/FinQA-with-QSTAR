@@ -12,53 +12,7 @@ import json
 import re
 from typing import Optional
 
-from .eval_finq import compute_accuracy
-
-
-BOX_PATTERN = re.compile(r"\\boxed\{([^}]*)\}")
-
-
-# ---------------------------------------------------------
-# LOAD / UTILS
-# ---------------------------------------------------------
-def load_predictions(path: str):
-    """Load the JSON predictions file."""
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    return data
-
-
-def extract_boxed(text: str) -> Optional[str]:
-    """Extract the first \boxed{...} value."""
-    matches = BOX_PATTERN.findall(text)
-    return matches[0] if matches else None
-
-
-# ---------------------------------------------------------
-# TWO NEW FUNCTIONS AS REQUIRED
-# ---------------------------------------------------------
-def compute_formatting_accuracy(preds):
-    """Percentage of predictions containing exactly ONE valid \\boxed{...}."""
-    correct = 0
-    for p in preds:
-        matches = BOX_PATTERN.findall(p)
-        if len(matches) == 1:
-            correct += 1
-    return correct / len(preds)
-
-
-def compute_rationale_stats(preds):
-    """Return (avg_len, min_len, max_len) for rationale lengths."""
-    lengths = []
-    for p in preds:
-        if "<think>" in p and "</think>" in p:
-            inner = p.split("<think>")[1].split("</think>")[0]
-            lengths.append(len(inner.split()))
-        else:
-            lengths.append(0)
-
-    avg_len = sum(lengths) / len(lengths)
-    return avg_len, min(lengths), max(lengths)
+from src.eval_finqa import compute_accuracy, compute_formatting_accuracy, compute_rationale_stats
 
 
 # ---------------------------------------------------------
@@ -66,7 +20,8 @@ def compute_rationale_stats(preds):
 # ---------------------------------------------------------
 def evaluate(pred_file: str):
     """Evaluate formatting + rationale statistics only."""
-    data = load_predictions(pred_file)
+    with open(pred_file, "r", encoding="utf-8") as f:
+        data = json.load(f)
 
     preds = [d["generation"] for d in data]
     true = [d["ground_truth"] for d in data]
@@ -102,8 +57,8 @@ def evaluate(pred_file: str):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pred", type=str, required=True,
+    parser.add_argument("--json-file", type=str, required=True,
                         help="Path to predictions JSON file.")
     args = parser.parse_args()
 
-    evaluate(args.pred)
+    evaluate(args.json_file)
