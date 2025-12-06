@@ -7,7 +7,9 @@ boxed numeric answer is complete.
 
 from __future__ import annotations
 
-from typing import List, Sequence, Any
+import math
+from collections import Counter
+from typing import List, Sequence, Any, Tuple
 from tqdm import tqdm
 import pandas as pd
 
@@ -15,6 +17,7 @@ import torch
 from transformers import PreTrainedModel, PreTrainedTokenizerBase, StoppingCriteria, StoppingCriteriaList
 
 from .table_utils import table_to_text
+from .eval_finqa import _extract_boxed_prediction, _normalize_magnitude
 
 
 PROMPT_FILE = "data/prompts.csv"
@@ -52,29 +55,113 @@ def build_prompt(sample, TASK_PROMPT, ANSWER_FORMAT) -> str:
 
 class BoxedStoppingCriteria(StoppingCriteria):
     """Stop generation after a boxed answer is complete."""
+
     def __init__(self, tokenizer, trigger="\\boxed{", close="}", min_after=1, max_after=8):
         self.trigger_ids = tokenizer.encode(trigger, add_special_tokens=False)
         self.len_trigger_ids = len(self.trigger_ids)
         self.close_id = tokenizer.encode(close, add_special_tokens=False)[-1]
         self.min_after = min_after
         self.max_after = max_after
-        self.seen_trigger = False
-        self.after_count = 0
+        self._seen_trigger: List[bool] = []
+        self._after_counts: List[int] = []
+
+    def _ensure_state(self, batch_size: int) -> None:
+        if len(self._seen_trigger) != batch_size:
+            self._seen_trigger = [False for _ in range(batch_size)]
+            self._after_counts = [0 for _ in range(batch_size)]
 
     def __call__(self, input_ids, scores, **kwargs):
-        seq = input_ids[0]
+        batch_size = input_ids.shape[0]
+        self._ensure_state(batch_size)
 
-        if not self.seen_trigger:
-            if seq[-self.len_trigger_ids:] == self.trigger_ids:
-                self.seen_trigger = True
+        stop_mask = []
+        for idx in range(batch_size):
+            seq = input_ids[idx]
+
+            if not self._seen_trigger[idx]:
+                if seq[-self.len_trigger_ids:] == self.trigger_ids:
+                    self._seen_trigger[idx] = True
+                stop_mask.append(False)
+                continue
+
+            self._after_counts[idx] += 1
+            at_close = seq[-1] == self.close_id and self._after_counts[idx] >= self.min_after
+            at_limit = self._after_counts[idx] >= self.max_after
+            stop_mask.append(at_close or at_limit)
+
+        return all(stop_mask) if stop_mask else False
+
+
+# ============================================================
+# SELF-CONSISTENCY HELPERS
+# ============================================================
+
+def extract_boxed_answers(responses: Sequence[str]) -> List[Any]:
+    """Parse a list of raw generations into boxed answers."""
+
+    return [_extract_boxed_prediction(resp) for resp in responses]
+
+
+def _canonicalize_vote_value(value: Any, anchor: float | None) -> Tuple[Tuple[str, str], Any, float | None]:
+    """Normalize answers so majority voting can tolerate scale mismatches."""
+
+    if isinstance(value, (int, float)) and math.isfinite(value):
+        numeric_value = float(value)
+        if anchor is None:
+            anchor = numeric_value
+            normalized = numeric_value
         else:
-            self.after_count += 1
-            if seq[-1] == self.close_id and self.after_count >= self.min_after:
-                return True
-            if self.after_count >= self.max_after:
-                return True
+            normalized, _ = _normalize_magnitude(numeric_value, anchor)
+        key = ("num", f"{normalized:.6g}")
+        return key, normalized, anchor
 
-        return False
+    text_value = "" if value is None else str(value)
+    normalized_text = text_value.strip()
+    key = ("text", normalized_text.lower())
+    return key, normalized_text, anchor
+
+
+def majority_vote_boxed_answers(values: Sequence[Any]) -> Any:
+    """Return the most frequent normalized answer among sampled values."""
+
+    if not values:
+        return None
+
+    counts: Counter = Counter()
+    representatives: dict[Tuple[str, str], Any] = {}
+    first_seen: dict[Tuple[str, str], int] = {}
+    anchor: float | None = None
+
+    for idx, value in enumerate(values):
+        key, canonical_value, anchor = _canonicalize_vote_value(value, anchor)
+        counts[key] += 1
+        representatives.setdefault(key, canonical_value)
+        first_seen.setdefault(key, idx)
+
+    if not counts:
+        return None
+
+    winning_key = max(counts.keys(), key=lambda k: (counts[k], -first_seen[k]))
+    return representatives[winning_key]
+
+
+def _format_numeric_answer(value: float) -> str:
+    if float(value).is_integer():
+        return str(int(value))
+    return f"{value:.10g}"
+
+
+def format_boxed_answer(value: Any) -> str:
+    """Wrap the selected value in a boxed answer string."""
+
+    if value is None:
+        return "\\boxed{}"
+    if isinstance(value, str):
+        cleaned = value.strip()
+        if cleaned.startswith("\\boxed"):
+            return cleaned
+        return f"\\boxed{{{cleaned}}}"
+    return f"\\boxed{{{_format_numeric_answer(float(value))}}}"
 
 
 # ============================================================
@@ -140,4 +227,76 @@ def run_inference(
 
         predictions.append(prediction)
 
+    return predictions
+
+
+@torch.inference_mode()
+def run_self_consistency(
+    model: PreTrainedModel,
+    tokenizer: PreTrainedTokenizerBase,
+    samples: Sequence[Any],
+    *,
+    num_sequences: int = 10,
+    max_new_tokens: int = 4000,
+    temperature: float | None = 0.7,
+    top_p: float | None = 0.8,
+    repetition_penalty: float = 1.05,
+    return_all_generations: bool = False,
+) -> List[str] | Tuple[List[str], List[List[str]]]:
+    """Generate multiple reasoning paths per sample and aggregate by majority vote."""
+
+    if num_sequences < 1:
+        raise ValueError("num_sequences must be >= 1")
+
+    device = next(model.parameters()).device
+    predictions: List[str] = []
+    all_generations: List[List[str]] = []
+
+    generation_kwargs = dict(
+        max_new_tokens=max_new_tokens,
+        do_sample=True,
+        num_return_sequences=num_sequences,
+        repetition_penalty=repetition_penalty,
+    )
+    if temperature is not None:
+        generation_kwargs["temperature"] = temperature
+    if top_p is not None:
+        generation_kwargs["top_p"] = top_p
+
+    for sample in tqdm(samples):
+        prompt = build_prompt(sample)
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": prompt},
+        ]
+        str_messages = tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True
+        )
+        inputs = tokenizer(str_messages, return_tensors="pt").to(device)
+
+        criteria = BoxedStoppingCriteria(
+            tokenizer,
+            trigger="\\boxed{",
+            close="}",
+            min_after=1,
+            max_after=8,
+        )
+        generation_kwargs["stopping_criteria"] = StoppingCriteriaList([criteria])
+
+        output_ids = model.generate(**inputs, **generation_kwargs)
+        generated_ids = output_ids[:, inputs.input_ids.shape[-1]:]
+        sample_generations = [
+            tokenizer.decode(seq, skip_special_tokens=True).strip()
+            for seq in generated_ids
+        ]
+
+        answers = extract_boxed_answers(sample_generations)
+        winning_value = majority_vote_boxed_answers(answers)
+        predictions.append(format_boxed_answer(winning_value))
+
+        if return_all_generations:
+            all_generations.append(sample_generations)
+
+    if return_all_generations:
+        return predictions, all_generations
     return predictions
