@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=qstar-qwen
 #SBATCH --account=csci_ga_3033_09-2025fa
-#SBATCH --partition=c12m85-a100-1   
-#SBATCH --gres=gpu:a100:4        
+#SBATCH --partition=c24m170-a100-2 
+#SBATCH --gres=gpu:a100:2       
 #SBATCH --time=01:00:00             
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=120G
@@ -23,7 +23,7 @@ export PYTHONPATH=/scratch/hz3916/FinQA-with-QSTAR # make sure Python is able to
 echo "Training Quiet-STAR version of Qwen/Qwen2.5-7B-Instruct..."
 
 python scripts/train_qstar.py \
-  --n-ahead 2 \
-  --n-ahead-talk 2
+  --n-ahead 1 \
+  --n-ahead-talk 1
 
 echo "Job finished."
