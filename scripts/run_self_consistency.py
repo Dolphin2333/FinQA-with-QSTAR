@@ -144,7 +144,12 @@ def main() -> None:
 
     accuracy, preds, matches = compute_accuracy(generations, list(iter_answers(samples)))
     fmt_acc = compute_formatting_accuracy(generations)
-    avg_len, min_len, max_len = compute_rationale_stats(generations)
+
+    flattened_paths = [gen for paths in candidate_paths for gen in paths]
+    if flattened_paths:
+        avg_len, min_len, max_len = compute_rationale_stats(flattened_paths)
+    else:
+        avg_len = min_len = max_len = 0.0
 
     print("==========================================")
     print(f"Answer accuracy.          : {accuracy * 100:.1f}%")
