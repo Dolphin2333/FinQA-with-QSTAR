@@ -25,6 +25,7 @@ from typing import Iterable, Optional, List, Tuple
 
 NUM_RE = re.compile(r"[-+]?\d+(?:\.\d+)?")
 WHITESPACE_RE = re.compile(r"\s+")
+BOX_PATTERN = re.compile(r"\\boxed\{([^}]*)\}")
 
 
 def _normalize_whitespace(text: str) -> str:
@@ -134,3 +135,30 @@ def compute_accuracy(generations: Iterable[str], references: Iterable[str]) -> f
 
     matches = [1 if _answers_match(pred, ref) else 0 for pred, ref in zip(preds, refs)]
     return sum(matches) / len(preds), preds, matches
+
+
+# ---------------------------------------------------------
+# TWO NEW FUNCTIONS AS REQUIRED
+# ---------------------------------------------------------
+def compute_formatting_accuracy(preds: Iterable[str]) -> float:
+    """Percentage of predictions containing exactly ONE valid \\boxed{...}."""
+    correct = 0
+    for p in preds:
+        matches = BOX_PATTERN.findall(p)
+        if len(matches) == 1:
+            correct += 1
+    return correct / len(preds)
+
+
+def compute_rationale_stats(preds: Iterable[str]) -> float:
+    """Return (avg_len, min_len, max_len) for rationale lengths."""
+    lengths = []
+    for p in preds:
+        if "<think>" in p and "</think>" in p:
+            inner = p.split("<think>")[1].split("</think>")[0]
+            lengths.append(len(inner.split()))
+        else:
+            lengths.append(0)
+
+    avg_len = sum(lengths) / len(lengths)
+    return avg_len, min(lengths), max(lengths)

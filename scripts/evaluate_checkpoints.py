@@ -1,4 +1,4 @@
-"""Entry point to execute the FinQA baseline pipeline."""
+"""Evaluate training checkpoint."""
 
 from __future__ import annotations
 
@@ -7,11 +7,12 @@ import argparse
 import json
 from pathlib import Path
 from accelerate.utils import set_seed
+from peft import PeftModel
 
 from src.eval_finqa import compute_accuracy, compute_formatting_accuracy, compute_rationale_stats
 from src.infer import run_inference
 from src.load_data import iter_answers, load_finqa_split
-from src.load_model import DEFAULT_MODEL_ID, load_baseline
+from src.load_model import load_qstar_for_training
 
 
 def parse_args() -> argparse.Namespace:
@@ -40,13 +41,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--model-name",
         type=str,
-        default=DEFAULT_MODEL_ID,
+        default="Qwen/Qwen2.5-7B-Instruct",
+        help="Hugging Face model identifier to load. Defaults to the Qwen 7B Instruct.",
+    )
+    parser.add_argument(
+        "--peft-dir",
+        type=Path,
+        default="../.cache/qstar/1764960658",
         help="Hugging Face model identifier to load. Defaults to the FinR1 checkpoint.",
     )
     parser.add_argument(
         "--max-new-tokens",
         type=int,
-        default=4000,
+        default=20,
         help="Maximum number of tokens generated for each answer.",
     )
     parser.add_argument(
@@ -91,6 +98,10 @@ def parse_args() -> argparse.Namespace:
         default=42,
         help="Optional random seed for reproducibility.",
     )
+    parser.add_argument("--n-ahead", type=int, default=10)
+    parser.add_argument("--n-ahead-talk", type=int, default=4)
+    parser.add_argument("--n-passes", type=int, default=1)
+    parser.add_argument("--root-prefix", type=str, default="..")
     return parser.parse_args()
 
 
@@ -112,74 +123,49 @@ def main() -> None:
 
     print(f"Loaded {len(samples)} samples from FinQA {args.split} split.")
 
-    model, tokenizer = load_baseline(args.model_name)
-    generations = run_inference(
-        model,
-        tokenizer,
-        samples,
-       # args.model_name,  #SN
-        max_new_tokens=args.max_new_tokens,
-        temperature=args.temperature,
-        top_p=args.top_p,
-        repetition_penalty=args.repetition_penalty,
-    )
+    model, tokenizer = load_qstar_for_training(args.model_name, params=args)
+    model.eval()
+    results = []
+
+    for checkpoint in [f"checkpoint-{i}" for i in range(10, 61, 10)]:
+        adapter_path = args.peft_dir / checkpoint
+        peft_model = PeftModel.from_pretrained(model, adapter_path)
+
+        generations = run_inference(
+            peft_model,
+            tokenizer,
+            samples,
+            max_new_tokens=args.max_new_tokens,
+            temperature=args.temperature,
+            top_p=args.top_p,
+            repetition_penalty=args.repetition_penalty,
+        )
+        print(generations)
+
+        # Answer accuracy
+        accuracy, preds, matches = compute_accuracy(generations, list(iter_answers(samples)))
+
+        # Formatting accuracy
+        fmt_acc = compute_formatting_accuracy(generations)
+
+        # Rationale stats
+        avg_len, min_len, max_len = compute_rationale_stats(generations)
+
+        result = {
+            "checkpoint": checkpoint,
+            "accuracy": accuracy,
+            "format_accuracy": fmt_acc,
+            "rational_length_avg": avg_len,
+            "rational_length_min": min_len,
+            "rational_length_max": max_len
+        }
+        results.append(result)
+        print(result)
 
     if args.output:
-        temp_output = args.output.with_suffix(".raw.json")
-        print(f"Backing up raw generations to {temp_output}...")
-
-        raw_serializable = [
-            {"id": sample.sample_id, "generation": gen}
-            for sample, gen in zip(samples, generations)
-        ]
-        
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        
-        with temp_output.open("w", encoding="utf-8") as f:
-            json.dump(raw_serializable, f, indent=2, ensure_ascii=False)
-        print(f"Wrote raw generations to {temp_output}")
-
-    # Answer accuracy
-    accuracy, preds, matches = compute_accuracy(generations, list(iter_answers(samples)))
-
-    # Formatting accuracy
-    fmt_acc = compute_formatting_accuracy(generations)
-
-    # Rationale stats
-    avg_len, min_len, max_len = compute_rationale_stats(generations)
-
-    print("==========================================")
-    print(f"Answer accuracy.          : {accuracy * 100:.1f}%")
-    print(f"Formatting accuracy       : {fmt_acc * 100:.1f}%")
-    print(f"Rationale length (avg)    : {avg_len:.1f} tokens")
-    print(f"Rationale length (min/max): {min_len} / {max_len}")
-
-    print("==========================================")
-
-    if args.output:
-        serializable = [
-            {
-                "id": sample.sample_id,
-                "question": sample.question,
-                "ground_truth": sample.answer,
-                "prediction": pred,
-                "match": match,
-                "generation": gen,
-                "program_text": sample.program_text,
-                "pre_text": sample.pre_text,
-                "post_text": sample.post_text,
-                "table": sample.table,
-            }
-            for sample, gen, pred, match in zip(samples, generations, preds, matches)
-        ]
-        args.output.parent.mkdir(parents=True, exist_ok=True)
         with args.output.open("w", encoding="utf-8") as f:
-            json.dump(serializable, f, indent=2, ensure_ascii=False)
-        print(f"Wrote predictions to {args.output}")
-
-        if os.path.exists(temp_output):
-            os.remove(temp_output)
-        print(f"Delete backup generations at {temp_output}")
+            json.dump(results, f, indent=2, ensure_ascii=False)
+        print(f"Wrote evaluation to {args.output}")
 
 
 if __name__ == "__main__":

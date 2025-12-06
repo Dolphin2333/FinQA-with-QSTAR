@@ -10,6 +10,7 @@ from pathlib import Path
 from accelerate.utils import set_seed
 from datasets import Dataset
 import torch
+from peft import LoraConfig, get_peft_model
 from transformers import TrainingArguments, Trainer, DataCollatorForSeq2Seq
 
 from src.eval_finqa import compute_accuracy
@@ -31,11 +32,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--train-limit", type=int, default=None)
     parser.add_argument("--eval-limit", type=int, default=100)
     parser.add_argument("--full-batch-size", type=int, default=1)
-    parser.add_argument("--eval-and-logging-steps", type=int, default=10)
+    parser.add_argument("--gradient_accumulation_steps", type=int, default=8)
+    parser.add_argument("--eval-steps", type=int, default=100)
+    parser.add_argument("--logging-steps", type=int, default=10)
     parser.add_argument("--save-steps", type=int, default=100)
-    parser.add_argument("--max-steps", type=int, default=100)
-    parser.add_argument("--output", type=Path, default=None)
-    parser.add_argument("--n-ahead", type=int, default=4)
+    parser.add_argument("--max-steps", type=int, default=10)
+    parser.add_argument("--n-ahead", type=int, default=10)
     parser.add_argument("--n-ahead-talk", type=int, default=4)
     parser.add_argument("--n-passes", type=int, default=1)
     parser.add_argument("--warmup-steps", type=int, default=20)
@@ -58,6 +60,10 @@ def tokenize_and_format(dataset, tokenizer, batch_size=8):
     return dataset.map(preprocess, batched=True, batch_size=batch_size)
 
 
+def count_params(module, trainable_only=False):
+    return sum(p.numel() for p in module.parameters() if (not trainable_only or p.requires_grad))
+
+
 def main() -> None:
     """Run the baseline pipeline end-to-end.
 
@@ -70,14 +76,28 @@ def main() -> None:
     set_seed(args.seed)
     cache_dir = f"{args.root_prefix}/.cache/qstar"
     batch_size = args.full_batch_size // args.n_passes
-    gradient_accumulation_steps = args.full_batch_size // batch_size
+    gradient_accumulation_steps = args.gradient_accumulation_steps
     run_id = int(time.time())
 
     # Load models
     model, tokenizer = load_qstar_for_training(args.model_name, params=args)
-    
-    num_params_trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Number of trainable parameters: {num_params_trainable}")
+    model.gradient_checkpointing_enable()
+    model.config.use_cache = False
+
+    # Create lora
+    lora_config = LoraConfig(
+        r=32,
+        lora_alpha=64,
+        lora_dropout=0,
+        bias="none",
+    )
+    peft_model = get_peft_model(model, lora_config)
+
+    # Count number of trainable parameters
+    full_params = count_params(model)
+    trainable_params = count_params(peft_model, trainable_only=True)
+    print(f"Number of trainable parameters: {trainable_params:,}")
+    print(f"Total number of parameters    : {full_params:,}")
     
     # Load datasets
     train_samples = load_finqa_split_text_with_answer(args.dataset_dir, split="train")
@@ -105,9 +125,8 @@ def main() -> None:
         max_steps=args.max_steps,
         warmup_steps=args.warmup_steps,
         weight_decay=args.weight_decay,
-        label_names=["labels"],
-        logging_steps=args.eval_and_logging_steps,
-        eval_steps=args.eval_and_logging_steps,
+        logging_steps=args.logging_steps,
+        eval_steps=args.eval_steps,
         eval_strategy="steps",
         save_steps=args.save_steps,
         run_name=f"n={args.n_ahead}_nt={args.n_ahead_talk}_np={args.n_passes}",
@@ -116,26 +135,17 @@ def main() -> None:
     # Set up Data Collator
     data_collator = DataCollatorForSeq2Seq(
         tokenizer=tokenizer,
-        model=model,
+        model=peft_model,
         padding="longest",
         return_tensors="pt",
     )
 
-    class MemTrainer(Trainer):
-        def training_step(self, model, inputs, num_items_in_batch):
-            out = super().training_step(model, inputs, num_items_in_batch)
-            torch.cuda.synchronize()
-            print("Allocated:", torch.cuda.memory_allocated() / 1024**2, "MB")
-            print("Cached:", torch.cuda.memory_reserved() / 1024**2, "MB")
-            return out
-
     # Set up trainer
-    trainer = MemTrainer(
+    trainer = Trainer(
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
-        # compute_metrics=compute_metrics,
-        model=model,
+        model=peft_model,
         data_collator=data_collator,
     )
 
