@@ -44,6 +44,12 @@ def parse_args() -> argparse.Namespace:
         help="Hugging Face model identifier to load. Defaults to the FinR1 checkpoint.",
     )
     parser.add_argument(
+        "--prompt-id",
+        type=int,
+        default=1,
+        help="Prompt ID to choose from the CSV file of prompts.",
+    )
+    parser.add_argument(
         "--max-new-tokens",
         type=int,
         default=4000,
@@ -117,11 +123,11 @@ def main() -> None:
         model,
         tokenizer,
         samples,
-       # args.model_name,  #SN
         max_new_tokens=args.max_new_tokens,
         temperature=args.temperature,
         top_p=args.top_p,
         repetition_penalty=args.repetition_penalty,
+        prompt_id=args.prompt_id,
     )
 
     if args.output:
