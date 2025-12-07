@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --job-name=qwen_sc_full
 #SBATCH --account=csci_ga_3033_09-2025fa
-#SBATCH --partition=c12m85-a100-1
-#SBATCH --gres=gpu:a100:1
+#SBATCH --partition=c24m170-a100-2
+#SBATCH --gres=gpu:a100:2
 #SBATCH --time=12:00:00
-#SBATCH --mem=120G
+#SBATCH --mem=160G
 #SBATCH --output=logs/qwen_sc_full.out
 #SBATCH --error=logs/qwen_sc_full.err
 
