@@ -121,28 +121,32 @@ def _canonicalize_vote_value(value: Any, anchor: float | None) -> Tuple[Tuple[st
     return key, normalized_text, anchor
 
 
-def majority_vote_boxed_answers(values: Sequence[Any]) -> Any:
-    """Return the most frequent normalized answer among sampled values."""
+def majority_vote_boxed_answers(values: Sequence[Any]) -> Tuple[Any, List[int]]:
+    """Return the winning normalized answer and indices of members supporting it."""
 
     if not values:
-        return None
+        return None, []
 
     counts: Counter = Counter()
     representatives: dict[Tuple[str, str], Any] = {}
     first_seen: dict[Tuple[str, str], int] = {}
+    memberships: dict[Tuple[str, str], List[int]] = {}
     anchor: float | None = None
 
     for idx, value in enumerate(values):
+        if value is None:
+            continue
         key, canonical_value, anchor = _canonicalize_vote_value(value, anchor)
         counts[key] += 1
         representatives.setdefault(key, canonical_value)
         first_seen.setdefault(key, idx)
+        memberships.setdefault(key, []).append(idx)
 
     if not counts:
-        return None
+        return None, []
 
     winning_key = max(counts.keys(), key=lambda k: (counts[k], -first_seen[k]))
-    return representatives[winning_key]
+    return representatives[winning_key], memberships[winning_key]
 
 
 def _format_numeric_answer(value: float) -> str:
@@ -242,7 +246,7 @@ def run_self_consistency(
     top_p: float | None = 0.8,
     repetition_penalty: float = 1.05,
     return_all_generations: bool = False,
-) -> List[str] | Tuple[List[str], List[List[str]]]:
+) -> Tuple[List[str], List[List[str]], List[List[str]]]:
     """Generate multiple reasoning paths per sample and aggregate by majority vote."""
 
     if num_sequences < 1:
@@ -251,6 +255,7 @@ def run_self_consistency(
     device = next(model.parameters()).device
     predictions: List[str] = []
     all_generations: List[List[str]] = []
+    winning_generations: List[List[str]] = []
 
     generation_kwargs = dict(
         max_new_tokens=max_new_tokens,
@@ -291,12 +296,13 @@ def run_self_consistency(
         ]
 
         answers = extract_boxed_answers(sample_generations)
-        winning_value = majority_vote_boxed_answers(answers)
+        winning_value, winning_indices = majority_vote_boxed_answers(answers)
         predictions.append(format_boxed_answer(winning_value))
+        winning_generations.append([sample_generations[i] for i in winning_indices])
 
         if return_all_generations:
             all_generations.append(sample_generations)
 
     if return_all_generations:
-        return predictions, all_generations
-    return predictions
+        return predictions, all_generations, winning_generations
+    return predictions, [], winning_generations
