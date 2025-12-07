@@ -13,6 +13,14 @@ from src.evaluate import compute_formatting_accuracy, compute_rationale_stats
 from src.infer import run_self_consistency, extract_boxed_answers
 from src.load_data import iter_answers, load_finqa_split
 from src.load_model import DEFAULT_MODEL_ID, load_baseline
+from src.evaluate import BOX_PATTERN
+
+
+def _reasoning_length(text: str) -> int:
+    if "<think>" in text and "</think>" in text:
+        inner = text.split("<think>", 1)[1].split("</think>", 1)[0]
+        return len(inner.split())
+    return 0
 
 
 def parse_args() -> argparse.Namespace:
@@ -105,7 +113,7 @@ def main() -> None:
     print(f"Loaded {len(samples)} samples from FinQA {args.split} split.")
 
     model, tokenizer = load_baseline(args.model_name)
-    generations, candidate_paths = run_self_consistency(
+    generations, candidate_paths, winning_paths = run_self_consistency(
         model,
         tokenizer,
         samples,
@@ -142,20 +150,37 @@ def main() -> None:
             json.dump(raw_serializable, f, indent=2, ensure_ascii=False)
         print(f"Wrote raw generations to {temp_output}")
 
-    accuracy, preds, matches = compute_accuracy(generations, list(iter_answers(samples)))
-    fmt_acc = compute_formatting_accuracy(generations)
+    references = list(iter_answers(samples))
+    # Accuracy over samples based on voted predictions
+    accuracy, _, matches = compute_accuracy(generations, references)
 
-    flattened_paths = [gen for paths in candidate_paths for gen in paths]
-    if flattened_paths:
-        avg_len, min_len, max_len = compute_rationale_stats(flattened_paths)
+    # Formatting accuracy over samples: 1 if the voted output contains boxed answer
+    fmt_scores = [1 if "\\boxed{" in pred and pred.count("\\boxed{") == 1 else 0 for pred in generations]
+    fmt_acc = sum(fmt_scores) / len(fmt_scores) if fmt_scores else 0.0
+
+    # Rationale stats: for samples with a voted answer, use concatenated winner reasoning;
+    # if no winner, use empty string placeholder.
+    sample_lengths = []
+    for sample_paths, winner_paths in zip(candidate_paths, winning_paths):
+        paths = winner_paths if winner_paths else (sample_paths[:1] if sample_paths else [])
+        if paths:
+            lengths = [_reasoning_length(p) for p in paths]
+            sample_lengths.append(sum(lengths) / len(lengths))
+        else:
+            sample_lengths.append(0.0)
+
+    if sample_lengths:
+        avg_len = sum(sample_lengths) / len(sample_lengths)
+        min_len = min(sample_lengths)
+        max_len = max(sample_lengths)
     else:
         avg_len = min_len = max_len = 0.0
 
     print("==========================================")
-    print(f"Answer accuracy.          : {accuracy * 100:.1f}%")
-    print(f"Formatting accuracy       : {fmt_acc * 100:.1f}%")
-    print(f"Rationale length (avg)    : {avg_len:.1f} tokens")
-    print(f"Rationale length (min/max): {min_len} / {max_len}")
+    print(f"Answer accuracy (per sample) : {accuracy * 100:.1f}%")
+    print(f"Formatting accuracy          : {fmt_acc * 100:.1f}%")
+    print(f"Rationale length (avg)       : {avg_len:.1f} tokens")
+    print(f"Rationale length (min/max)   : {min_len} / {max_len}")
     print("==========================================")
 
     if args.output:
@@ -167,14 +192,15 @@ def main() -> None:
                 "prediction": pred,
                 "match": match,
                 "majority_generation": gen,
+                "winning_generations": winning,
                 "all_generations": paths,
                 "program_text": sample.program_text,
                 "pre_text": sample.pre_text,
                 "post_text": sample.post_text,
                 "table": sample.table,
             }
-            for sample, gen, pred, match, paths in zip(
-                samples, generations, preds, matches, candidate_paths
+            for sample, gen, pred, match, paths, winning in zip(
+                samples, generations, preds, matches, candidate_paths, winning_paths
             )
         ]
         with args.output.open("w", encoding="utf-8") as f:
