@@ -118,6 +118,9 @@ def _extract_boxed_prediction(pred: str) -> Optional[float]:
 
 
 def _answers_match(pred: str, gold: str, *, atol: float = 5e-1, rtol: float = 1e-3) -> bool:
+    if pred is None:
+        return False
+    
     pred_num = pred
     gold_num = _extract_numeric_candidate(gold)
 

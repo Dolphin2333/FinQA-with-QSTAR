@@ -121,7 +121,7 @@ def _canonicalize_vote_value(value: Any, anchor: float | None) -> Tuple[Tuple[st
     return key, normalized_text, anchor
 
 
-def majority_vote_boxed_answers(values: Sequence[Any]) -> Tuple[Any, List[int]]:
+def majority_vote_boxed_answers(values: Sequence[Any]) -> List[int]:
     """Return the winning normalized answer and indices of members supporting it."""
 
     if not values:
@@ -143,10 +143,18 @@ def majority_vote_boxed_answers(values: Sequence[Any]) -> Tuple[Any, List[int]]:
         memberships.setdefault(key, []).append(idx)
 
     if not counts:
-        return None, []
+        return None, list(range(len(values)))
 
-    winning_key = max(counts.keys(), key=lambda k: (counts[k], -first_seen[k]))
-    return representatives[winning_key], memberships[winning_key]
+    # determine highest vote count
+    max_count = max(counts.values())
+
+    # collect all keys that have the max_count, order by first_seen (earlier seen first)
+    winning_keys = sorted((k for k, c in counts.items() if c == max_count), key=lambda k: first_seen[k])
+
+    # build winners and their memberships in the same order
+    winner_memberships = [idx for k in winning_keys for idx in memberships[k]]
+
+    return winner_memberships
 
 
 def _format_numeric_answer(value: float) -> str:
@@ -168,6 +176,15 @@ def format_boxed_answer(value: Any) -> str:
     return f"\\boxed{{{_format_numeric_answer(float(value))}}}"
 
 
+def get_prompts(prompt_id: int) -> List[str]:
+    prompts = pd.read_csv(PROMPT_FILE)
+    prompts = prompts.loc[prompts.ID == f"P{prompt_id}",:].reset_index()
+    SYSTEM_PROMPT = prompts.SYSTEM_PROMPT[0]
+    TASK_PROMPT = prompts.TASK_PROMPT[0]
+    ANSWER_FORMAT = prompts.ANSWER_FORMAT[0]
+    return SYSTEM_PROMPT, TASK_PROMPT, ANSWER_FORMAT
+
+
 # ============================================================
 # RUN INFERENCE (UNCHANGED LOGIC)
 # ============================================================
@@ -185,13 +202,7 @@ def run_inference(
     prompt_id: int = 1,
 ) -> List[str]:
     """Generate answers for a list of FinQASample inputs."""
-    # Get prompt
-    prompts = pd.read_csv(PROMPT_FILE)
-    prompts = prompts.loc[prompts.ID == f"P{prompt_id}",:].reset_index()
-    SYSTEM_PROMPT = prompts.SYSTEM_PROMPT[0]
-    TASK_PROMPT = prompts.TASK_PROMPT[0]
-    ANSWER_FORMAT = prompts.ANSWER_FORMAT[0]
-
+    SYSTEM_PROMPT, TASK_PROMPT, ANSWER_FORMAT = get_prompts(prompt_id)
     device = next(model.parameters()).device
     predictions: List[str] = []
 
@@ -245,6 +256,7 @@ def run_self_consistency(
     temperature: float | None = 0.7,
     top_p: float | None = 0.8,
     repetition_penalty: float = 1.05,
+    prompt_id: int = 1,
     return_all_generations: bool = False,
 ) -> Tuple[List[str], List[List[str]], List[List[str]]]:
     """Generate multiple reasoning paths per sample and aggregate by majority vote."""
@@ -252,8 +264,8 @@ def run_self_consistency(
     if num_sequences < 1:
         raise ValueError("num_sequences must be >= 1")
 
+    SYSTEM_PROMPT, TASK_PROMPT, ANSWER_FORMAT = get_prompts(prompt_id)
     device = next(model.parameters()).device
-    predictions: List[str] = []
     all_generations: List[List[str]] = []
     winning_generations: List[List[str]] = []
 
@@ -269,7 +281,7 @@ def run_self_consistency(
         generation_kwargs["top_p"] = top_p
 
     for sample in tqdm(samples):
-        prompt = build_prompt(sample)
+        prompt = build_prompt(sample, TASK_PROMPT, ANSWER_FORMAT)
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt},
@@ -296,13 +308,12 @@ def run_self_consistency(
         ]
 
         answers = extract_boxed_answers(sample_generations)
-        winning_value, winning_indices = majority_vote_boxed_answers(answers)
-        predictions.append(format_boxed_answer(winning_value))
+        winning_indices = majority_vote_boxed_answers(answers)
         winning_generations.append([sample_generations[i] for i in winning_indices])
 
         if return_all_generations:
             all_generations.append(sample_generations)
 
     if return_all_generations:
-        return predictions, all_generations, winning_generations
-    return predictions, [], winning_generations
+        return all_generations, winning_generations
+    return [], winning_generations

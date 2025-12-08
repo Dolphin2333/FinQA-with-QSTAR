@@ -8,12 +8,10 @@ import json
 from pathlib import Path
 from accelerate.utils import set_seed
 
-from src.eval_finqa import compute_accuracy
-from src.evaluate import compute_formatting_accuracy, compute_rationale_stats
+from src.eval_finqa import compute_accuracy, compute_formatting_accuracy, compute_rationale_stats
 from src.infer import run_self_consistency, extract_boxed_answers
 from src.load_data import iter_answers, load_finqa_split
 from src.load_model import DEFAULT_MODEL_ID, load_baseline
-from src.evaluate import BOX_PATTERN
 
 
 def _reasoning_length(text: str) -> int:
@@ -48,6 +46,12 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=10,
         help="Number of reasoning paths to sample per question for majority voting.",
+    )
+    parser.add_argument(
+        "--prompt-id",
+        type=int,
+        default=7,
+        help="Prompt ID to choose from the CSV file of prompts.",
     )
     parser.add_argument(
         "--max-new-tokens",
@@ -113,7 +117,7 @@ def main() -> None:
     print(f"Loaded {len(samples)} samples from FinQA {args.split} split.")
 
     model, tokenizer = load_baseline(args.model_name)
-    generations, candidate_paths, winning_paths = run_self_consistency(
+    candidate_paths, winning_paths = run_self_consistency(
         model,
         tokenizer,
         samples,
@@ -122,6 +126,7 @@ def main() -> None:
         temperature=args.temperature,
         top_p=args.top_p,
         repetition_penalty=args.repetition_penalty,
+        prompt_id=args.prompt_id,
         return_all_generations=True,
     )
 
@@ -152,29 +157,24 @@ def main() -> None:
 
     references = list(iter_answers(samples))
     # Accuracy over samples based on voted predictions
-    accuracy, _, matches = compute_accuracy(generations, references)
+    accuracy_list = [
+        compute_accuracy(paths, [ref] * len(paths))[0] 
+        for paths, ref in zip(winning_paths, references)
+    ]
+    accuracy = sum(accuracy_list) / len(accuracy_list)
 
-    # Formatting accuracy over samples: 1 if the voted output contains boxed answer
-    fmt_scores = [1 if "\\boxed{" in pred and pred.count("\\boxed{") == 1 else 0 for pred in generations]
-    fmt_acc = sum(fmt_scores) / len(fmt_scores) if fmt_scores else 0.0
+    # Formatting accuracy
+    fmt_acc_list = [compute_formatting_accuracy(paths) for paths in winning_paths]
+    fmt_acc = sum(fmt_acc_list) / len(fmt_acc_list)
 
-    # Rationale stats: for samples with a voted answer, use concatenated winner reasoning;
-    # if no winner, use empty string placeholder.
-    sample_lengths = []
-    for sample_paths, winner_paths in zip(candidate_paths, winning_paths):
-        paths = winner_paths if winner_paths else (sample_paths[:1] if sample_paths else [])
-        if paths:
-            lengths = [_reasoning_length(p) for p in paths]
-            sample_lengths.append(sum(lengths) / len(lengths))
-        else:
-            sample_lengths.append(0.0)
-
-    if sample_lengths:
-        avg_len = sum(sample_lengths) / len(sample_lengths)
-        min_len = min(sample_lengths)
-        max_len = max(sample_lengths)
-    else:
-        avg_len = min_len = max_len = 0.0
+    # Rationale stats
+    len_stats = [compute_rationale_stats(paths) for paths in winning_paths]
+    avg_len_list = [stat[0] for stat in len_stats]
+    min_len_list = [stat[1] for stat in len_stats]
+    max_len_list = [stat[1] for stat in len_stats]
+    avg_len = sum(avg_len_list) / len(avg_len_list)
+    min_len = min(min_len_list)
+    max_len = max(max_len_list)
 
     print("==========================================")
     print(f"Answer accuracy (per sample) : {accuracy * 100:.1f}%")
@@ -189,9 +189,6 @@ def main() -> None:
                 "id": sample.sample_id,
                 "question": sample.question,
                 "ground_truth": sample.answer,
-                "prediction": pred,
-                "match": match,
-                "majority_generation": gen,
                 "winning_generations": winning,
                 "all_generations": paths,
                 "program_text": sample.program_text,
@@ -199,8 +196,8 @@ def main() -> None:
                 "post_text": sample.post_text,
                 "table": sample.table,
             }
-            for sample, gen, pred, match, paths, winning in zip(
-                samples, generations, preds, matches, candidate_paths, winning_paths
+            for sample, paths, winning in zip(
+                samples, candidate_paths, winning_paths
             )
         ]
         with args.output.open("w", encoding="utf-8") as f:
