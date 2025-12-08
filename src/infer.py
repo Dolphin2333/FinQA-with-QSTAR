@@ -125,7 +125,7 @@ def majority_vote_boxed_answers(values: Sequence[Any]) -> List[int]:
     """Return the winning normalized answer and indices of members supporting it."""
 
     if not values:
-        return None, []
+        return []
 
     counts: Counter = Counter()
     representatives: dict[Tuple[str, str], Any] = {}
@@ -143,7 +143,7 @@ def majority_vote_boxed_answers(values: Sequence[Any]) -> List[int]:
         memberships.setdefault(key, []).append(idx)
 
     if not counts:
-        return None, list(range(len(values)))
+        return list(range(len(values)))
 
     # determine highest vote count
     max_count = max(counts.values())
