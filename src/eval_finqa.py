@@ -107,15 +107,20 @@ def _extract_numeric_candidate(text: str) -> Optional[float]:
 
 def _extract_boxed_prediction(pred: str) -> Optional[float]:
     """Extract numerical prediction from model output."""
-    if "\\boxed{" in pred:
-        pred = pred.split("\\boxed{")[1].split("}")[0].strip().lower()
-        pred_num = _extract_numeric_candidate(pred)
-        if pred_num is not None:
-            return pred_num
-    return pred
+    if "\\boxed{" not in pred:
+        return None
+
+    inner = pred.split("\\boxed{", 1)[1].split("}", 1)[0].strip().lower()
+    pred_num = _extract_numeric_candidate(inner)
+    if pred_num is not None:
+        return pred_num
+    return inner or None
 
 
 def _answers_match(pred: str, gold: str, *, atol: float = 5e-1, rtol: float = 1e-3) -> bool:
+    if pred is None:
+        return False
+    
     pred_num = pred
     gold_num = _extract_numeric_candidate(gold)
 

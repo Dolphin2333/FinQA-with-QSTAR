@@ -1,0 +1,189 @@
+[
+  {
+    "id": "V/2008/page_17.pdf-1",
+    "question": "what is the average payment volume per transaction for american express?",
+    "ground_truth": "127.40",
+    "prediction": 127.4,
+    "match": 1,
+    "majority_generation": "\\boxed{127.4}",
+    "all_generations": [
+      "<think>\nTo find the average payment volume per transaction for American Express, we need to divide the total payment volume by the total number of transactions.\n\nFrom the table provided:\n- American Express's total payment volume is $637 billion\n- American Express's total number of transactions is 5.0 billion\n\nSo, the average payment volume per transaction = total payment volume / total number of transactions\n= $637 billion / 5.0 billion\n= 127.4\n</think>\n\\boxed{127.4}",
+      "<think>\nTo find the average payment volume per transaction for American Express, I need to divide the total payment volume by the total number of transactions.\n\nFrom the table provided:\n- American Express's total payment volume (billions) = 637\n- American Express's total transactions (billions) = 5.0\n\nNow, I'll perform the division:\n\n\\[ \\text{Average payment volume per transaction} = \\frac{\\text{Total payment volume}}{\\text{Total transactions}} = \\frac{637}{5.0} \\]\n\nLet's calculate this value.\n</think>\n\\boxed{127.4}",
+      "<think>\nTo find the average payment volume per transaction for American Express, we need to divide the payments volume by the total volume of transactions.\n\nFrom the table:\n- American Express' payments volume (in billions) = 637\n- American Express' total transactions (in billions) = 5.0\n\nThe formula for average payment volume per transaction is:\n\\[ \\text{Average Payment Volume per Transaction} = \\frac{\\text{Payments Volume}}{\\text{Total Transactions}} \\]\n\nSubstituting the values:\n\\[ \\text{Average Payment Volume per Transaction} = \\frac{637}{5.0} \\]\n</think>\n\\boxed{127.4}"
+    ],
+    "program_text": "divide(637, const_5)",
+    "pre_text": "largest operators of open-loop and closed-loop retail electronic payments networks the largest operators of open-loop and closed-loop retail electronic payments networks are visa , mastercard , american express , discover , jcb and diners club . with the exception of discover , which primarily operates in the united states , all of the other network operators can be considered multi- national or global providers of payments network services . based on payments volume , total volume , number of transactions and number of cards in circulation , visa is the largest retail electronic payments network in the world . the following chart compares our network with those of our major competitors for calendar year 2007 : company payments volume volume transactions cards ( billions ) ( billions ) ( billions ) ( millions ) visa inc. ( 1 ) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . $ 2457 $ 3822 50.3 1592 .",
+    "post_text": "( 1 ) visa inc . figures as reported previously in our filings . source : the nilson report , issue 902 ( may 2008 ) and issue 903 ( may 2008 ) . note : visa inc . figures exclude visa europe . figures for competitors include their respective european operations . visa figures include visa , visa electron , and interlink brands . visa cards include plus proprietary cards , but proprietary plus cash volume is not included . domestic china figures are excluded . mastercard figures include pin-based debit card figures on mastercard cards , but not maestro or cirrus figures . china commercial funds transfers are excluded . american express and discover include business from third-party issuers . jcb figures are for april 2006 through march 2007 , but cards and outlets are as of september 2007 . jcb total transaction figures are estimates . our primary operations we generate revenue from the transaction processing services we offer to our customers . our customers deliver visa products and payment services to consumers and merchants based on the product platforms we define and manage . payments network management is a core part of our operations , as it ensures that our payments system provides a safe , efficient , consistent , and interoperable service to cardholders , merchants , and financial institutions worldwide . transaction processing services core processing services our core processing services involve the routing of payment information and related data to facilitate the authorization , clearing and settlement of transactions between visa issuers , which are the financial institutions that issue visa cards to cardholders , and acquirers , which are the financial institutions that offer visa network connectivity and payments acceptance services to merchants . in addition , we offer a range of value-added processing services to support our customers 2019 visa programs and to promote the growth and security of the visa payments network . authorization is the process of approving or declining a transaction before a purchase is finalized or cash is disbursed . clearing is the process of delivering final transaction data from an acquirer to an issuer for posting to the cardholder 2019s account , the calculation of certain fees and charges that apply to the issuer and acquirer involved in the transaction , and the conversion of transaction amounts to the .",
+    "table": [
+      [
+        "company",
+        "payments volume ( billions )",
+        "total volume ( billions )",
+        "total transactions ( billions )",
+        "cards ( millions )"
+      ],
+      [
+        "visa inc. ( 1 )",
+        "$ 2457",
+        "$ 3822",
+        "50.3",
+        "1592"
+      ],
+      [
+        "mastercard",
+        "1697",
+        "2276",
+        "27.0",
+        "916"
+      ],
+      [
+        "american express",
+        "637",
+        "647",
+        "5.0",
+        "86"
+      ],
+      [
+        "discover",
+        "102",
+        "119",
+        "1.6",
+        "57"
+      ],
+      [
+        "jcb",
+        "55",
+        "61",
+        "0.6",
+        "58"
+      ],
+      [
+        "diners club",
+        "29",
+        "30",
+        "0.2",
+        "7"
+      ]
+    ]
+  },
+  {
+    "id": "C/2017/page_328.pdf-1",
+    "question": "what was the percentage cumulative total return for the five year period ended 31-dec-2017 of citi common stock?",
+    "ground_truth": "93.5%",
+    "prediction": 93.5,
+    "match": 1,
+    "majority_generation": "\\boxed{93.5}",
+    "all_generations": [
+      "<think>\nTo calculate the percentage cumulative total return for Citi common stock over the five-year period ended 31-dec-2017, we need to follow these steps:\n\n1. Identify the initial investment value and the final value from the table.\n2. Calculate the difference between the final and initial values.\n3. Divide this difference by the initial value to get the growth factor.\n4. Convert the growth factor into a percentage.\n\nFrom the table:\n- Initial value (31-Dec-2012) = 100.0\n- Final value (31-Dec-2017) = 193.5\n\nStep 1: Difference in value = 193.5 - 100.0 = 93.5\nStep 2: Growth factor = 193.5 / 100.0 = 1.935\nStep 3: Percentage cumulative total return = (1.935 - 1) * 100% = 0.935 * 100% = 93.5%\n\nThe percentage cumulative total return for the five-year period ended 31-Dec-2017 for Citi common stock is 93.5%.\n</think>\n\\boxed{93.5}",
+      "<think>\nTo calculate the five-year cumulative total return for Citi common stock, we need to follow these steps:\n\n1. Identify the initial investment value at the start of the period (31-Dec-2012).\n2. Identify the final investment value at the end of the period (31-Dec-2017).\n3. Calculate the difference between the final and initial values.\n4. Divide this difference by the initial value to get the cumulative total return as a decimal.\n5. Convert this decimal to a percentage.\n\nFrom the table:\n- Initial value (31-Dec-2012) = 100.0\n- Final value (31-Dec-2017) = 193.5\n\nThe formula for cumulative total return is:\n\\[ \\text{Cumulative Total Return} = \\left( \\frac{\\text{Final Value} - \\text{Initial Value}}{\\text{Initial Value}} \\right) \\times 100 \\]\n\nPlugging in the values:\n\\[ \\text{Cumulative Total Return} = \\left( \\frac{193.5 - 100.0}{100.0} \\right) \\times 100 \\]\n\\[ \\text{Cumulative Total Return} = \\left( \\frac{93.5}{100.0} \\right) \\times 100 \\]\n\\[ \\text{Cumulative Total Return} = 0.935 \\times 100 \\]\n\\[ \\text{Cumulative Total Return} = 93.5\\% \\]\n</think>\n\\boxed{93.5}",
+      "<think>\nTo calculate the five-year cumulative total return for Citi common stock as of December 31, 2017, we need to find the difference between the value of the investment at the end of the period and its initial value, and then express this difference as a percentage of the initial value.\n\nFrom the table:\n- Initial value (December 31, 2012) = 100.0\n- Value at the end of the period (December 31, 2017) = 193.5\n\nThe formula for cumulative total return is:\n\\[ \\text{Cumulative Total Return} = \\left( \\frac{\\text{Ending Value} - \\text{Initial Value}}{\\text{Initial Value}} \\right) \\times 100 \\]\n\nSubstituting the values:\n\\[ \\text{Cumulative Total Return} = \\left( \\frac{193.5 - 100.0}{100.0} \\right) \\times 100 \\]\n\\[ \\text{Cumulative Total Return} = \\left( \\frac{93.5}{100.0} \\right) \\times 100 \\]\n\\[ \\text{Cumulative Total Return} = 0.935 \\times 100 \\]\n\\[ \\text{Cumulative Total Return} = 93.5\\% \\]\n\nSo, the five-year cumulative total return for Citi common stock as of December 31, 2017, is 93.5%.\n\n</think>\n\\boxed{93.5}"
+    ],
+    "program_text": "subtract(193.5, const_100), divide(#0, const_100)",
+    "pre_text": "performance graph comparison of five-year cumulative total return the following graph and table compare the cumulative total return on citi 2019s common stock , which is listed on the nyse under the ticker symbol 201cc 201d and held by 65691 common stockholders of record as of january 31 , 2018 , with the cumulative total return of the s&p 500 index and the s&p financial index over the five-year period through december 31 , 2017 . the graph and table assume that $ 100 was invested on december 31 , 2012 in citi 2019s common stock , the s&p 500 index and the s&p financial index , and that all dividends were reinvested . comparison of five-year cumulative total return for the years ended date citi s&p 500 financials .",
+    "post_text": ".",
+    "table": [
+      [
+        "date",
+        "citi",
+        "s&p 500",
+        "s&p financials"
+      ],
+      [
+        "31-dec-2012",
+        "100.0",
+        "100.0",
+        "100.0"
+      ],
+      [
+        "31-dec-2013",
+        "131.8",
+        "132.4",
+        "135.6"
+      ],
+      [
+        "31-dec-2014",
+        "137.0",
+        "150.5",
+        "156.2"
+      ],
+      [
+        "31-dec-2015",
+        "131.4",
+        "152.6",
+        "153.9"
+      ],
+      [
+        "31-dec-2016",
+        "152.3",
+        "170.8",
+        "188.9"
+      ],
+      [
+        "31-dec-2017",
+        "193.5",
+        "208.1",
+        "230.9"
+      ]
+    ]
+  },
+  {
+    "id": "DVN/2007/page_58.pdf-2",
+    "question": "what percentage of the total oil and gas mmboe comes from canada?",
+    "ground_truth": "24.69%",
+    "prediction": 24.69,
+    "match": 1,
+    "majority_generation": "\\boxed{24.69}",
+    "all_generations": [
+      "<think>\n1. First, identify the total mmboe production from Canada.\n2. From the table, Canada's total mmboe is 60.\n3. Identify the overall total mmboe production.\n4. From the table, the total mmboe for all regions is 243.\n5. Calculate the percentage of total mmboe from Canada.\n   Percentage = (Canada's mmboe / Total mmboe) * 100\n   = (60 / 243) * 100\n</think>\n\\boxed{24.691358024691357}",
+      "<think>\n1. First, identify the total mmboe from Canada: 60 mmboe.\n2. Identify the total mmboe for all regions: 243 mmboe.\n3. Calculate the percentage of total oil and gas mmboe that comes from Canada using the formula:\n   \\[ \\text{Percentage} = \\left( \\frac{\\text{Canada's mmboe}}{\\text{Total mmboe}} \\right) \\times 100 \\]\n4. Substitute the values into the formula:\n   \\[ \\text{Percentage} = \\left( \\frac{60}{243} \\right) \\times 100 \\]\n5. Perform the calculation:\n   \\[ \\text{Percentage} = 0.24691358 \\times 100 \\approx 24.69 \\]\n</think>\n\\boxed{24.69}",
+      "<think>\n1. Identify the total oil and gas mmboe production from Canada.\n   - From the table, Canada's total mmboe production is 60.\n\n2. Identify the overall total mmboe production.\n   - From the table, the total mmboe production is 243.\n\n3. Calculate the percentage of Canada's production relative to the total.\n   - Percentage = (Canada's total mmboe / Total mmboe) * 100\n   - Percentage = (60 / 243) * 100\n</think>\n\\boxed{24.69}"
+    ],
+    "program_text": "divide(60, 243), multiply(#0, const_100)",
+    "pre_text": "the acquisition date is on or after the beginning of the first annual reporting period beginning on or after december 15 , 2008 . we will evaluate how the new requirements of statement no . 141 ( r ) would impact any business combinations completed in 2009 or thereafter . in december 2007 , the fasb also issued statement of financial accounting standards no . 160 , noncontrolling interests in consolidated financial statements 2014an amendment of accounting research bulletin no . 51 . a noncontrolling interest , sometimes called a minority interest , is the portion of equity in a subsidiary not attributable , directly or indirectly , to a parent . statement no . 160 establishes accounting and reporting standards for the noncontrolling interest in a subsidiary and for the deconsolidation of a subsidiary . under statement no . 160 , noncontrolling interests in a subsidiary must be reported as a component of consolidated equity separate from the parent 2019s equity . additionally , the amounts of consolidated net income attributable to both the parent and the noncontrolling interest must be reported separately on the face of the income statement . statement no . 160 is effective for fiscal years beginning on or after december 15 , 2008 and earlier adoption is prohibited . we do not expect the adoption of statement no . 160 to have a material impact on our financial statements and related disclosures . 2008 estimates the forward-looking statements provided in this discussion are based on our examination of historical operating trends , the information that was used to prepare the december 31 , 2007 reserve reports and other data in our possession or available from third parties . these forward-looking statements were prepared assuming demand , curtailment , producibility and general market conditions for our oil , natural gas and ngls during 2008 will be substantially similar to those of 2007 , unless otherwise noted . we make reference to the 201cdisclosure regarding forward-looking statements 201d at the beginning of this report . amounts related to canadian operations have been converted to u.s . dollars using a projected average 2008 exchange rate of $ 0.98 u.s . dollar to $ 1.00 canadian dollar . in january 2007 , we announced our intent to divest our west african oil and gas assets and terminate our operations in west africa , including equatorial guinea , cote d 2019ivoire , gabon and other countries in the region . in november 2007 , we announced an agreement to sell our operations in gabon for $ 205.5 million . we are finalizing purchase and sales agreements and obtaining the necessary partner and government approvals for the remaining properties in this divestiture package . we are optimistic we can complete these sales during the first half of 2008 . all west african related revenues , expenses and capital will be reported as discontinued operations in our 2008 financial statements . accordingly , all forward-looking estimates in the following discussion exclude amounts related to our operations in west africa , unless otherwise noted . though we have completed several major property acquisitions and dispositions in recent years , these transactions are opportunity driven . thus , the following forward-looking estimates do not include any financial and operating effects of potential property acquisitions or divestitures that may occur during 2008 , except for west africa as previously discussed . oil , gas and ngl production set forth below are our estimates of oil , gas and ngl production for 2008 . we estimate that our combined 2008 oil , gas and ngl production will total approximately 240 to 247 mmboe . of this total , approximately 92% ( 92 % ) is estimated to be produced from reserves classified as 201cproved 201d at december 31 , 2007 . the following estimates for oil , gas and ngl production are calculated at the midpoint of the estimated range for total production . oil gas ngls total ( mmbbls ) ( bcf ) ( mmbbls ) ( mmboe ) .",
+    "post_text": ".",
+    "table": [
+      [
+        "",
+        "oil ( mmbbls )",
+        "gas ( bcf )",
+        "ngls ( mmbbls )",
+        "total ( mmboe )"
+      ],
+      [
+        "u.s . onshore",
+        "12",
+        "626",
+        "23",
+        "140"
+      ],
+      [
+        "u.s . offshore",
+        "8",
+        "68",
+        "1",
+        "20"
+      ],
+      [
+        "canada",
+        "23",
+        "198",
+        "4",
+        "60"
+      ],
+      [
+        "international",
+        "23",
+        "2",
+        "2014",
+        "23"
+      ],
+      [
+        "total",
+        "66",
+        "894",
+        "28",
+        "243"
+      ]
+    ]
+  }
+]
