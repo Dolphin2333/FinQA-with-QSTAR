@@ -102,6 +102,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--n-ahead-talk", type=int, default=4)
     parser.add_argument("--n-passes", type=int, default=1)
     parser.add_argument("--root-prefix", type=str, default="..")
+    parser.add_argument("--prompt-id", type=int, default=1)
     return parser.parse_args()
 
 
@@ -127,7 +128,10 @@ def main() -> None:
     model.eval()
     results = []
 
-    for checkpoint in [f"checkpoint-{i}" for i in range(10, 61, 10)]:
+    checkpoints = os.listdir(args.peft_dir)
+    checkpoints = sorted(checkpoints, key=lambda x: int(x.split('-')[1]))
+
+    for checkpoint in checkpoints:
         adapter_path = args.peft_dir / checkpoint
         peft_model = PeftModel.from_pretrained(model, adapter_path)
 
@@ -139,11 +143,12 @@ def main() -> None:
             temperature=args.temperature,
             top_p=args.top_p,
             repetition_penalty=args.repetition_penalty,
+            prompt_id=args.prompt_id,
         )
         print(generations)
 
         # Answer accuracy
-        accuracy, preds, matches = compute_accuracy(generations, list(iter_answers(samples)))
+        accuracy, _, _ = compute_accuracy(generations, list(iter_answers(samples)))
 
         # Formatting accuracy
         fmt_acc = compute_formatting_accuracy(generations)

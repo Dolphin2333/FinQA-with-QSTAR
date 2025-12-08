@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Sequence, Dict
 
-from .infer import build_prompt
+from .infer import build_prompt, get_prompts
 
 
 def _program_tokenization(program_text: str) -> List[str]:
@@ -111,15 +111,20 @@ def iter_answers(samples: Iterable[FinQASample]) -> Iterable[str]:
 
 
 def load_finqa_split_text_with_answer(
-    dataset_dir: Path, split: str, writer_batch_size: int = 200
+    dataset_dir: Path, split: str, prompt_id: int = 1
 ) -> List[Dict[str, str]]:
     """
     Load a FinQA split as texts that include 
     both questions and ground-truth answers.
     """
     samples = load_finqa_split(dataset_dir, split)
+    SYSTEM_PROMPT, TASK_PROMPT, ANSWER_FORMAT = get_prompts(prompt_id)
     texts = [
-        {"text": build_prompt(sample) + "Final answer: \\boxed{" + sample.answer + "}"}
+        {"text": (
+            "<|im_start|>system\n" + SYSTEM_PROMPT + "<|im_end|>"
+            + "<|im_start|>user\n" + build_prompt(sample, TASK_PROMPT, ANSWER_FORMAT) + "<|im_end|>"
+            + "<|im_start|>assistant\nFinal answer: \\boxed{" + sample.answer + "}"
+        )}
         for sample in samples
     ]
     return texts
