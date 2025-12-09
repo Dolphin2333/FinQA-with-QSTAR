@@ -32,7 +32,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--train-limit", type=int, default=None)
     parser.add_argument("--eval-limit", type=int, default=100)
     parser.add_argument("--full-batch-size", type=int, default=1)
-    parser.add_argument("--gradient_accumulation_steps", type=int, default=8)
+    parser.add_argument("--gradient-accumulation-steps", type=int, default=8)
     parser.add_argument("--eval-steps", type=int, default=100)
     parser.add_argument("--logging-steps", type=int, default=10)
     parser.add_argument("--save-steps", type=int, default=100)
@@ -47,6 +47,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--gumbel-temperature", type=float, default=1.0)
     parser.add_argument("--root-prefix", type=str, default="..")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--prompt-id", type=int, default=1)
     return parser.parse_args()
 
 
@@ -100,12 +101,12 @@ def main() -> None:
     print(f"Total number of parameters    : {full_params:,}")
     
     # Load datasets
-    train_samples = load_finqa_split_text_with_answer(args.dataset_dir, split="train")
+    train_samples = load_finqa_split_text_with_answer(args.dataset_dir, split="train", prompt_id=args.prompt_id)
     if args.train_limit:
         train_samples = train_samples[: args.train_limit]
     train_dataset = tokenize_and_format(Dataset.from_list(train_samples), tokenizer, batch_size=8)
 
-    eval_samples = load_finqa_split_text_with_answer(args.dataset_dir, split="dev")
+    eval_samples = load_finqa_split_text_with_answer(args.dataset_dir, split="dev", prompt_id=args.prompt_id)
     if args.eval_limit:
         eval_samples = eval_samples[: args.eval_limit]
     eval_dataset = tokenize_and_format(Dataset.from_list(eval_samples), tokenizer, batch_size=8)
