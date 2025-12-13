@@ -20,7 +20,7 @@ To answer this, we evaluate three approaches: Prompt Engineering, Self-Consisten
 - Self-consistency improves accuracy by ~5.8% in general-purpose LLMs without increasing inference time
 - Quiet-STaR is computationally prohibitive under our budgets and does not yield favorable inference trade-offs
 
-📄 Report and Compiled Results
+## 📄 Report and Compiled Results
 
 A full PDF report is provided at [`Final_Report.pdf`](./Final_Report.pdf), containing detailed experimental setup, analysis, and discussion of results.
 
@@ -102,7 +102,7 @@ and place them under [`data/`](data/).
 python scripts/run_baseline.py \
     --dataset-dir data \
     --split test \
-    --model-name Qwen/Qwen2.5-7B-Instruct \      # or SUFE-AIFLM-Lab/Fin-R1
+    --model-name Qwen/Qwen2.5-7B-Instruct \   # or SUFE-AIFLM-Lab/Fin-R1
     --prompt-id 7 \                           # One of the 10 prompts in data/prompts.csv
     --max-new-tokens 4000 \
     --temperature 0.7 \
@@ -202,10 +202,10 @@ python scripts/run_self_consistency.py \
     --dataset-dir data \
     --split test \
     --model-name Qwen/Qwen2.5-7B-Instruct \   # or SUFE-AIFLM-Lab/Fin-R1
-    --n-ahead 8 \                               # Number of thoughts
-    --n-ahead-talk 4 \                          # Length of thoughts
-    --peft-dir ../.cache/qstar/1764960658       # Where to LoRA checkpoints are saved
-    --prompt-id 7 \                             # One of the 10 prompts in data/prompts.csv
+    --n-ahead 8 \                             # Number of thoughts
+    --n-ahead-talk 4 \                        # Length of thoughts
+    --peft-dir ../.cache/qstar/1764960658     # Where to LoRA checkpoints are saved
+    --prompt-id 7 \                           # One of the 10 prompts in data/prompts.csv
     --max-new-tokens 4000 \
     --temperature 0.7 \
     --top-p 0.8 \
