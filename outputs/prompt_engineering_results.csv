@@ -1,0 +1,11 @@
+Prompt,Qwen 7B Accuracy,FinR1 Accuracy,Qwen 7B Format Accuracy,FinR1 Format Accuracy,Qwen 7B Average Generation Length,FinR1 Average Generation Length,Qwen 7B Inference Time (per-sample),FinR1 Inference Time (per-sample)
+P1 - General instructions,62.0,70.4,98.3,51.8,57.3,610.9,6.6,50.9
+"P2 - Persona, Task, Context, and Format",65.1,72.2,99.5,57.6,36.5,671.9,8.5,58.4
+P3 - General CoT prompting,64.9,68.6,99.7,56.9,27.2,700.7,8.8,51.5
+P4 - Templated-based CoT prompting,65.2,74.1,99.1,66.7,84.3,356.5,7.2,27.3
+P5 - Rule-based CoT prompting,56.9,72.5,97.6,59.3,39.5,662.1,4.7,47.6
+P6 - General PoT,46.2,68.3,99.5,61.5,13.4,624.3,2.4,50.2
+P7 - Few-shot,67.2,72.8,99.8,56.2,94.1,692.9,5.2,49.6
+P8 - Few-shot with Table reasoning,59.4,67.7,96.3,51.1,44.3,570.4,5.8,50.9
+P9 - Few-shot with increasing difficulty,63.6,72.7,99.8,55.4,79.8,624.0,6.5,47.6
+P10 - Few-shot PoT,48.7,68.9,97.3,58.7,13.6,521.3,3.9,50.6

@@ -1,0 +1,9 @@
+Number of sequences,Temperature,Top-p,Qwen 7B Accuracy,FinR1 Accuracy,Qwen 7B Format Accuracy,FinR1 Format Accuracy,Qwen 7B Total Generation Length,FinR1 Total Generation Length,Qwen 7B Inference Time (per-sample),FinR1 Inference Time (per-sample)
+1,0.7,0.8,67.2,72.8,99.8,56.2,94.1,692.9,5.2,49.6
+1,1.0,0.6,64.0,72.3,99.7,56.4,93.4,531.7,4.7,48.7
+3,0.7,0.8,67.6,73.3,99.9,53.6,282.9,1956.6,15.6,125.9
+3,1.0,0.6,67.4,73.3,99.9,55.6,282.6,2141.7,15.9,130.2
+5,0.7,0.8,68.1,71.3,99.8,57.8,464.0,3544,19.4,157.8
+5,1.0,0.6,68.3,75.2,99.8,55.2,466.5,3156,19.4,168.5
+9,0.7,0.8,68.3,73.8,99.7,54,840.6,5107.5,29.9,263.1
+9,1.0,0.6,73.0,70.4,99.7,60.9,860.4,5952.6,33.7,258.5

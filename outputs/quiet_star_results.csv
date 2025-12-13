@@ -1,0 +1,11 @@
+# Thoughts,Ahead Tokens,Memory allocated (GB),Memory cached (GB),Use method to improve efficiency,Per-iteration runtime (s),Evaluation time (per-sample)
+1,1,51,62,FALSE,,
+1,2,51,91,FALSE,,
+2,1,51,91,FALSE,,
+2,2,51,117,FALSE,,
+4,2,51,176,FALSE,,
+8,4,14,17,TRUE,38.7,162.4
+10,4,14,17,TRUE,45.3,189.2
+12,4,14,17,TRUE,52.7,219.1
+16,8,14,17,TRUE,84.0,351.5
+24,12,14,20,TRUE,138.7,580.3
